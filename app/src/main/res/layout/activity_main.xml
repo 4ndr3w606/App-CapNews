@@ -7,7 +7,7 @@
     android:padding="24dp">
 
     <TextView
-        android:id="@+id/tvWelcome"
+        android:id="@+id/tv_bienvenido"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Bienvenido al Lector de Noticias"
@@ -23,7 +23,7 @@
         android:layout_marginBottom="8dp"/>
 
     <TextView
-        android:id="@+id/tvCategoryNotice"
+        android:id="@+id/tx_notice"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
@@ -32,7 +32,7 @@
         android:textStyle="bold" />
 
     <Spinner
-        android:id="@+id/spinnerCategories"
+        android:id="@+id/spinner_categories"
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginBottom="32dp"
@@ -40,7 +40,7 @@
         android:padding="8dp"/>
 
     <Button
-        android:id="@+id/btnViewNews"
+        android:id="@+id/btn_view_news"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Explorar Noticias"
@@ -48,8 +48,9 @@
         android:padding="12dp"
         android:layout_marginBottom="16dp" />
 
+
     <Button
-        android:id="@+id/btnLogout"
+        android:id="@+id/btn_logout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Cerrar Sesión"

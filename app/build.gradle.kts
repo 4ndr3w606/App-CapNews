@@ -43,6 +43,7 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.constraintlayout.core)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.runtime.saved.instance.state)
     implementation(libs.material)

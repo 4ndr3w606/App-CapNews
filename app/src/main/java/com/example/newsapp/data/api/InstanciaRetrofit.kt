@@ -8,9 +8,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object InstanciaRetrofit {
 
-    private const val BASE_URL = "https://newsapi.org/"
+    private const val BASE_URL = "https://gnews.io/api/v4/"
 
-    const val API_KEY = "8ef67ebf8c0346938b88f2f9ef0eb624"
+    const val API_KEY = "4a257252e9b18ede94080376265456e7"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply{
         level = HttpLoggingInterceptor.Level.BODY

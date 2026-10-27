@@ -6,16 +6,18 @@ import retrofit2.Response
 
 interface ApiService {
 
-    @GET("v2/top-headlines")
+    @GET("top-headlines")
     suspend fun getTopHeadlines(
-        @Query("country") country: String = "us",
         @Query("category") category: String,
-        @Query("apiKey") apiKey: String
+        @Query("lang") lang: String = "es",
+        @Query("country") country: String? = null,
+        @Query("apikey") apiKey: String
     ): Response<NewsResponse>
 
-    @GET("v2/everything")
+    @GET("search")
     suspend fun searchNews(
         @Query("q") query: String,
-        @Query("apiKey") apiKey: String
+        @Query("lang") lang: String = "es",
+        @Query("apikey") apiKey: String
     ): Response<NewsResponse>
 }

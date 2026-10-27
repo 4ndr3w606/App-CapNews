@@ -23,11 +23,11 @@ class NewsActivity : AppCompatActivity() {
         binding = ActivityNewsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val categoria = intent.getStringExtra("EXTRA_SELECTED_CATEGORY") ?: "general"
-        binding.tvHeaderCategory.text = "Noticias de ${categoria.uppercase()}"
+        val apiCategory = intent.getStringExtra("EXTRA_SELECTED_CATEGORY") ?: "world"
+        val displayCategory = intent.getStringExtra("EXTRA_DISPLAY_CATEGORY") ?: "Mundo"
 
-        supportActionBar?.title = "Noticias: $categoria"
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        binding.tvHeaderCategory.text = "Noticias de $displayCategory"
+        supportActionBar?.title = "Noticias: $displayCategory"
 
         newsAdapter = NewsAdapter(emptyList()) { article ->
             Toast.makeText(this, "Seleccionado: ${article.title}", Toast.LENGTH_SHORT).show()
@@ -45,7 +45,7 @@ class NewsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val response = InstanciaRetrofit.api.getTopHeadlines(
-                    category = categoria,
+                    category = apiCategory, // 'world', 'technology', etc.
                     apiKey = InstanciaRetrofit.API_KEY
                 )
 
@@ -54,12 +54,12 @@ class NewsActivity : AppCompatActivity() {
 
                     val validArticles =  articles.filter{!it.url.isNullOrEmpty() && !it.title.isNullOrEmpty()}
 
-                    val entities = validArticles.map{it.toEntity(categoria)}
+                    val entities = validArticles.map{it.toEntity(apiCategory)}
                     noticiaDao.insertArticles(entities)
 
                     newsAdapter.actualizarNews(validArticles)
                 } else {
-                    loadFromDatabase(noticiaDao, categoria)
+                    loadFromDatabase(noticiaDao, apiCategory)
                 }
             } catch (e: Exception) {
                 Toast.makeText(
@@ -67,7 +67,7 @@ class NewsActivity : AppCompatActivity() {
                     "Modo sin conexión",
                     Toast.LENGTH_SHORT
                 ).show()
-                loadFromDatabase(noticiaDao, categoria)
+                loadFromDatabase(noticiaDao, apiCategory)
             }
         }
     }
