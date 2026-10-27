@@ -48,6 +48,8 @@ dependencies {
     implementation(libs.androidx.runtime.saved.instance.state)
     implementation(libs.material)
 
+    implementation("androidx.browser:browser:1.8.0")
+
     // 2. Consumo de API REST (Retrofit + Gson Converter)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")

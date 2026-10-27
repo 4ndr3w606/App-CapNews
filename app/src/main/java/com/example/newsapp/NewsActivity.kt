@@ -12,6 +12,7 @@ import com.example.newsapp.databinding.ActivityNewsBinding
 import com.example.newsapp.adapter.NewsAdapter
 import com.example.newsapp.local.AppDatabase
 import com.example.newsapp.local.NoticiaDao
+import com.example.newsapp.utils.LectorWeb
 import kotlinx.coroutines.launch
 class NewsActivity : AppCompatActivity() {
 
@@ -30,7 +31,7 @@ class NewsActivity : AppCompatActivity() {
         supportActionBar?.title = "Noticias: $displayCategory"
 
         newsAdapter = NewsAdapter(emptyList()) { article ->
-            Toast.makeText(this, "Seleccionado: ${article.title}", Toast.LENGTH_SHORT).show()
+            LectorWeb.abrirNoticia(this, article.url)
         }
 
         binding.rvNews.apply {
