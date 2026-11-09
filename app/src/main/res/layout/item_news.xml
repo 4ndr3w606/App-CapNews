@@ -37,6 +37,13 @@
                 android:ellipsize="end"
                 android:textColor="?attr/colorOnSurface" />
 
+            <ImageButton
+                android:id="@+id/btnFavorito"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Guardar en favoritos"
+                android:src="@android:drawable/btn_star_big_off" />
 
             <TextView
                 android:id="@+id/tv_description"

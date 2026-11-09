@@ -9,11 +9,13 @@ import com.example.newsapp.databinding.ItemNewsBinding
 
 class NewsAdapter(
     private var articles: List<Article>,
-    private val onItemClick: (Article) -> Unit
+    private val onItemClick: (Article) -> Unit,
+    private val onFavoritoClick: (Article) -> Unit 
 ) : RecyclerView.Adapter<NewsAdapter.NewsViewHolder>() {
 
     inner class NewsViewHolder(private val binding: ItemNewsBinding) :
         RecyclerView.ViewHolder(binding.root) {
+
         fun bind(article: Article) {
             binding.tvTitle.text = article.title ?: "Sin título"
             binding.tvDescription.text = article.description ?: "Sin descripción disponible."
@@ -28,13 +30,19 @@ class NewsAdapter(
             binding.root.setOnClickListener {
                 onItemClick(article)
             }
+
+
+            binding.btnFavorito.setOnClickListener {
+                onFavoritoClick(article)
+            }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NewsViewHolder {
         val binding = ItemNewsBinding.inflate(
             LayoutInflater.from(parent.context),
-            parent, false
+            parent,
+            false
         )
         return NewsViewHolder(binding)
     }

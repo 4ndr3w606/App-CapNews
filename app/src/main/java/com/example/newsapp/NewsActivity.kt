@@ -10,6 +10,7 @@ import com.example.newsapp.adapter.NewsAdapter
 import com.example.newsapp.data.api.InstanciaRetrofit
 import com.example.newsapp.data.toDomain
 import com.example.newsapp.data.toEntity
+import com.example.newsapp.data.toFavoritoEntity
 import com.example.newsapp.databinding.ActivityNewsBinding
 import com.example.newsapp.local.AppDatabase
 import com.example.newsapp.local.NoticiaDao
@@ -32,6 +33,31 @@ class NewsActivity : AppCompatActivity() {
         binding = ActivityNewsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // Dentro de onCreate() en NewsActivity.kt:
+
+        val db = AppDatabase.getDatabase(this)
+        val favoritoDao = db.favoritoDao()
+
+        newsAdapter = NewsAdapter(
+            articles = emptyList(),
+            onItemClick = { article ->
+                LectorWeb.abrirNoticia(this, article.url)
+            },
+            onFavoritoClick = { article ->
+                lifecycleScope.launch {
+                    val esFav = favoritoDao.esFavorito(article.url ?: "")
+                    val entidadFav = article.toFavoritoEntity()
+
+                    if (esFav) {
+                        favoritoDao.eliminarFavorito(entidadFav)
+                        Toast.makeText(this@NewsActivity, "Eliminada de favoritos", Toast.LENGTH_SHORT).show()
+                    } else {
+                        favoritoDao.insertarFavorito(entidadFav)
+                        Toast.makeText(this@NewsActivity, "Guardada en favoritos", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
         val apiCategory = intent.getStringExtra("EXTRA_SELECTED_CATEGORY") ?: "world"
         val displayCategory = intent.getStringExtra("EXTRA_DISPLAY_CATEGORY") ?: "Mundo"
         categoriaActual = apiCategory
@@ -39,10 +65,6 @@ class NewsActivity : AppCompatActivity() {
         binding.tvHeaderCategory.text = "Noticias de $displayCategory"
         supportActionBar?.title = "Noticias: $displayCategory"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
-        newsAdapter = NewsAdapter(emptyList()) { article ->
-            LectorWeb.abrirNoticia(this, article.url)
-        }
 
         binding.rvNews.apply {
             layoutManager = LinearLayoutManager(this@NewsActivity)
