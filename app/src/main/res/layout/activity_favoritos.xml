@@ -6,13 +6,17 @@
     android:padding="16dp">
 
     <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Mis Noticias Favoritas"
-        android:textSize="22sp"
-        android:textStyle="bold"
+        android:layout_width="395dp"
+        android:layout_height="55dp"
+        android:layout_marginTop="35dp"
         android:layout_marginBottom="16dp"
-        android:textColor="?attr/colorPrimary" />
+        android:background="#2196F3"
+        android:backgroundTint="#03A9F4"
+        android:padding="10dp"
+        android:text="Mis Noticias Favoritas"
+        android:textColor="@color/white"
+        android:textSize="22sp"
+        android:textStyle="bold" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvFavoritos"
