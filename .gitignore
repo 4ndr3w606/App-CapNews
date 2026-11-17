@@ -24,6 +24,11 @@ out/
 # Local configuration files (SDK path, secret keys)
 local.properties
 key.properties
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/node_modules/
+backend/data/
 
 # Signing files
 *.jks

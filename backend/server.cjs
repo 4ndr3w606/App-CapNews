@@ -1,0 +1,208 @@
+const crypto = require("node:crypto");
+const fs = require("node:fs");
+const path = require("node:path");
+const { promisify } = require("node:util");
+const express = require("express");
+const Database = require("better-sqlite3");
+const { rateLimit } = require("express-rate-limit");
+
+const app = express();
+const port = Number(process.env.PORT || 3000);
+const databasePath = path.resolve(
+  process.env.AUTH_DB_PATH || path.join(__dirname, "data", "capnews.sqlite")
+);
+const scrypt = promisify(crypto.scrypt);
+const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+const SCRYPT_OPTIONS = { N: 32_768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
+
+const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
+if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0) {
+  throw new Error("TRUST_PROXY_HOPS debe ser un entero igual o mayor que cero.");
+}
+if (trustProxyHops > 0) app.set("trust proxy", trustProxyHops);
+
+fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+const db = new Database(databasePath);
+db.pragma("journal_mode = WAL");
+db.pragma("foreign_keys = ON");
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS sessions (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    expires_at INTEGER NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
+  CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
+`);
+
+app.disable("x-powered-by");
+app.use((request, response, next) => {
+  response.set("X-Content-Type-Options", "nosniff");
+  response.set("Cache-Control", "no-store");
+  next();
+});
+app.use(express.json({ limit: "8kb", strict: true }));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: {
+    error: { code: "RATE_LIMITED", message: "Demasiados intentos. Espera y vuelve a probar." },
+  },
+});
+
+function sendError(response, status, code, message) {
+  return response.status(status).json({ error: { code, message } });
+}
+
+function normalizeEmail(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
+}
+
+function isValidEmail(email) {
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const derivedKey = await scrypt(password, salt, 64, SCRYPT_OPTIONS);
+  return `scrypt$${salt.toString("base64url")}$${derivedKey.toString("base64url")}`;
+}
+
+async function verifyPassword(password, storedHash) {
+  const [algorithm, saltText, hashText] = storedHash.split("$");
+  if (algorithm !== "scrypt" || !saltText || !hashText) return false;
+
+  const salt = Buffer.from(saltText, "base64url");
+  const expected = Buffer.from(hashText, "base64url");
+  if (salt.length !== 16 || expected.length !== 64) return false;
+
+  const actual = await scrypt(password, salt, expected.length, SCRYPT_OPTIONS);
+  return crypto.timingSafeEqual(actual, expected);
+}
+
+const dummyPasswordHash = hashPassword(crypto.randomBytes(32).toString("hex"));
+
+function tokenDigest(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function createSession(userId) {
+  const token = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = Date.now() + SESSION_LIFETIME_MS;
+  db.prepare("INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)")
+    .run(tokenDigest(token), userId, expiresAt);
+  return { token, expiresAt };
+}
+
+function getBearerToken(request) {
+  const match = /^Bearer ([A-Za-z0-9_-]{40,})$/.exec(request.get("authorization") || "");
+  return match?.[1] || null;
+}
+
+function requireSession(request, response, next) {
+  const token = getBearerToken(request);
+  if (!token) return sendError(response, 401, "UNAUTHENTICATED", "Inicia sesión para continuar.");
+
+  const now = Date.now();
+  db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now);
+  const user = db.prepare(`
+    SELECT users.id, users.email
+    FROM sessions JOIN users ON users.id = sessions.user_id
+    WHERE sessions.token_hash = ? AND sessions.expires_at > ?
+  `).get(tokenDigest(token), now);
+
+  if (!user) return sendError(response, 401, "UNAUTHENTICATED", "La sesión venció. Inicia sesión de nuevo.");
+  request.auth = { token, user };
+  return next();
+}
+
+app.get("/health", (_request, response) => response.json({ status: "ok" }));
+
+app.post("/api/auth/register", authLimiter, async (request, response, next) => {
+  const email = normalizeEmail(request.body?.email);
+  const password = request.body?.password;
+
+  if (!isValidEmail(email) || typeof password !== "string" || password.length < 8 || password.length > 128) {
+    return sendError(response, 400, "INVALID_INPUT", "Ingresa un correo válido y una contraseña de 8 a 128 caracteres.");
+  }
+
+  try {
+    const passwordHash = await hashPassword(password);
+    const result = db.prepare("INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)")
+      .run(email, passwordHash, Date.now());
+    const user = { id: Number(result.lastInsertRowid), email };
+    const session = createSession(user.id);
+    return response.status(201).json({ user, token: session.token, expiresAt: session.expiresAt });
+  } catch (error) {
+    if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
+      return sendError(response, 409, "REGISTRATION_FAILED", "No se pudo crear la cuenta con esos datos.");
+    }
+    return next(error);
+  }
+});
+
+app.post("/api/auth/login", authLimiter, async (request, response, next) => {
+  const email = normalizeEmail(request.body?.email);
+  const password = request.body?.password;
+  if (!isValidEmail(email) || typeof password !== "string" || password.length < 8 || password.length > 128) {
+    return sendError(response, 401, "INVALID_CREDENTIALS", "Correo o contraseña incorrectos.");
+  }
+
+  try {
+    const account = db.prepare("SELECT id, email, password_hash FROM users WHERE email = ?").get(email);
+    const passwordMatches = account
+      ? await verifyPassword(password, account.password_hash)
+      : await verifyPassword(password, await dummyPasswordHash);
+    if (!account || !passwordMatches) {
+      return sendError(response, 401, "INVALID_CREDENTIALS", "Correo o contraseña incorrectos.");
+    }
+
+    const session = createSession(account.id);
+    return response.json({
+      user: { id: account.id, email: account.email },
+      token: session.token,
+      expiresAt: session.expiresAt,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.get("/api/auth/me", requireSession, (request, response) => {
+  return response.json({ user: request.auth.user });
+});
+
+app.post("/api/auth/logout", requireSession, (request, response) => {
+  db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(tokenDigest(request.auth.token));
+  return response.status(204).end();
+});
+
+app.use((error, _request, response, _next) => {
+  if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
+    return sendError(response, 400, "INVALID_REQUEST", "La solicitud no es válida.");
+  }
+  console.error("Error interno al procesar una solicitud de autenticación.");
+  return sendError(response, 500, "INTERNAL_ERROR", "Ocurrió un error interno.");
+});
+
+const server = app.listen(port, "0.0.0.0", () => {
+  console.log(`API de autenticación escuchando en el puerto ${port}.`);
+});
+
+function shutdown() {
+  server.close(() => {
+    db.close();
+    process.exit(0);
+  });
+}
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

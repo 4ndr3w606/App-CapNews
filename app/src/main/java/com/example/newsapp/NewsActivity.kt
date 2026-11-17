@@ -112,8 +112,7 @@ class NewsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val response = InstanciaRetrofit.api.getTopHeadlines(
-                    category = categoria,
-                    apiKey = InstanciaRetrofit.API_KEY
+                    category = categoria
                 )
 
                 if (response.isSuccessful) {
@@ -142,8 +141,7 @@ class NewsActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val response = InstanciaRetrofit.api.buscarNoticias(
-                    consulta = terminoBusqueda,
-                    apiKey = InstanciaRetrofit.API_KEY
+                    consulta = terminoBusqueda
                 )
 
                 if (response.isSuccessful) {

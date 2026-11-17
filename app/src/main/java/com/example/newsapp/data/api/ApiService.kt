@@ -9,15 +9,13 @@ interface ApiService {
     @GET("top-headlines")
     suspend fun getTopHeadlines(
         @Query("category") category: String,
-        @Query("lang") lang: String = "es",
-        @Query("apikey") apiKey: String
+        @Query("lang") lang: String = "es"
     ): Response<NewsResponse>
 
 
     @GET("search")
     suspend fun buscarNoticias(
         @Query("q") consulta: String,
-        @Query("lang") lang: String = "es",
-        @Query("apikey") apiKey: String
+        @Query("lang") lang: String = "es"
     ): Response<NewsResponse>
 }

@@ -1,7 +1,23 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.ksp)
 }
+
+val localProperties = Properties().apply {
+    val propertiesFile = rootProject.file("local.properties")
+    if (propertiesFile.exists()) {
+        propertiesFile.inputStream().use { load(it) }
+    }
+}
+val gnewsApiKey = providers.gradleProperty("gnewsApiKey").orNull
+    ?: System.getenv("GNEWS_API_KEY")
+    ?: localProperties.getProperty("gnewsApiKey")
+    ?: ""
+val configuredAuthApiBaseUrl = providers.gradleProperty("authApiBaseUrl").orNull
+    ?: System.getenv("AUTH_API_BASE_URL")
+    ?: localProperties.getProperty("authApiBaseUrl")
 
 android {
     namespace = "com.example.newsapp"
@@ -17,14 +33,26 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GNEWS_API_KEY", "\"$gnewsApiKey\"")
+        buildConfigField(
+            "String",
+            "AUTH_API_BASE_URL",
+            "\"${configuredAuthApiBaseUrl ?: "https://auth-backend-not-configured.invalid/"}\""
+        )
     }
 
     // 1. Habilitar ViewBinding para vinculación rápida de vistas
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     buildTypes {
+        debug {
+            if (configuredAuthApiBaseUrl == null) {
+                buildConfigField("String", "AUTH_API_BASE_URL", "\"http://10.0.2.2:3000/\"")
+            }
+        }
         release {
             optimization {
                 enable = true

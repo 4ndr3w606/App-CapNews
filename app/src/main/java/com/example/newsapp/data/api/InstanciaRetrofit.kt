@@ -1,7 +1,8 @@
 package com.example.newsapp.data.api
 
-import okhttp3.logging.HttpLoggingInterceptor
+import com.example.newsapp.BuildConfig
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -10,13 +11,17 @@ object InstanciaRetrofit {
 
     private const val BASE_URL = "https://gnews.io/api/v4/"
 
-    const val API_KEY = "4a257252e9b18ede94080376265456e7"
-
-    private val loggingInterceptor = HttpLoggingInterceptor().apply{
-        level = HttpLoggingInterceptor.Level.BODY
+    private val loggingInterceptor = HttpLoggingInterceptor().apply {
+        level = HttpLoggingInterceptor.Level.BASIC
     }
 
     private val client = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder()
+                .header("X-Api-Key", BuildConfig.GNEWS_API_KEY)
+                .build()
+            chain.proceed(request)
+        }
         .addInterceptor(loggingInterceptor)
         .build()
 
