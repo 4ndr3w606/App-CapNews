@@ -8,7 +8,8 @@ import retrofit2.http.POST
 
 data class AuthCredentials(
     val email: String,
-    val password: String
+    val password: String,
+    val name: String? = null
 )
 
 data class AuthUser(

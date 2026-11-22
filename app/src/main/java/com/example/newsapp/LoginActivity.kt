@@ -1,8 +1,12 @@
 package com.example.newsapp
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Patterns
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.newsapp.data.AuthSessionStore
@@ -18,6 +22,15 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var sessionStore: AuthSessionStore
     private var registrationMode = false
     private var busy = false
+    private val localNetworkPermission = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            submitCredentials()
+        } else {
+            showError("Permite el acceso a la red local en los ajustes de CapNews para conectarte al servidor de desarrollo.")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,6 +46,7 @@ class LoginActivity : AppCompatActivity() {
 
     private fun restoreSessionIfPresent() {
         val token = sessionStore.getToken() ?: return
+        if (needsLocalNetworkPermission()) return
         setBusy(true)
         lifecycleScope.launch {
             try {
@@ -58,10 +72,16 @@ class LoginActivity : AppCompatActivity() {
         if (busy) return
         clearErrors()
 
+        val name = binding.etUsername.text?.toString()?.trim().orEmpty()
         val email = binding.etEmail.text?.toString()?.trim().orEmpty()
         val password = binding.etPassword.text?.toString().orEmpty()
         val confirmation = binding.etConfirmPassword.text?.toString().orEmpty()
 
+        if (registrationMode && name.isBlank()) {
+            binding.tilUsername.error = "Ingresa tu nombre de usuario."
+            binding.etUsername.requestFocus()
+            return
+        }
         if (!Patterns.EMAIL_ADDRESS.matcher(email).matches() || email.length > 254) {
             binding.tilEmail.error = "Escribe un correo válido."
             return
@@ -75,12 +95,17 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
+        if (needsLocalNetworkPermission()) {
+            localNetworkPermission.launch(ACCESS_LOCAL_NETWORK)
+            return
+        }
+
         setBusy(true)
         lifecycleScope.launch {
             try {
                 val credentials = AuthCredentials(email, password)
                 val response = if (registrationMode) {
-                    AuthApiClient.service.register(credentials)
+                    AuthApiClient.service.register(credentials.copy(name = name))
                 } else {
                     AuthApiClient.service.login(credentials)
                 }
@@ -107,8 +132,14 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
+    private fun needsLocalNetworkPermission(): Boolean =
+        BuildConfig.DEBUG && Build.VERSION.SDK_INT >= 37 &&
+            Uri.parse(BuildConfig.AUTH_API_BASE_URL).scheme.equals("http", ignoreCase = true) &&
+            checkSelfPermission(ACCESS_LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED
+
     private fun setRegistrationMode(enabled: Boolean) {
         registrationMode = enabled
+        binding.tilUsername.visibility = if (enabled) android.view.View.VISIBLE else android.view.View.GONE
         binding.tvAuthTitle.text = if (enabled) "Crear cuenta" else "Iniciar sesión"
         binding.btnLogin.text = if (enabled) "Registrarme" else "Ingresar"
         binding.btnToggleAuth.text = if (enabled) {
@@ -130,6 +161,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun clearErrors() {
+        binding.tilUsername.error = null
         binding.tilEmail.error = null
         binding.tilPassword.error = null
         binding.tilConfirmPassword.error = null
@@ -155,6 +187,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private companion object {
+        const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
         const val MIN_PASSWORD_LENGTH = 8
         const val MAX_PASSWORD_LENGTH = 128
     }

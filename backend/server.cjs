@@ -29,6 +29,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     email TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    name TEXT,
     password_hash TEXT NOT NULL,
     created_at INTEGER NOT NULL
   );
@@ -40,6 +41,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
 `);
+if (!db.pragma("table_info(users)").some((column) => column.name === "name")) {
+  db.exec("ALTER TABLE users ADD COLUMN name TEXT");
+}
 
 app.disable("x-powered-by");
 app.use((request, response, next) => {
@@ -115,7 +119,7 @@ function requireSession(request, response, next) {
   const now = Date.now();
   db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now);
   const user = db.prepare(`
-    SELECT users.id, users.email
+    SELECT users.id, users.email, users.name
     FROM sessions JOIN users ON users.id = sessions.user_id
     WHERE sessions.token_hash = ? AND sessions.expires_at > ?
   `).get(tokenDigest(token), now);
@@ -130,6 +134,12 @@ app.get("/health", (_request, response) => response.json({ status: "ok" }));
 app.post("/api/auth/register", authLimiter, async (request, response, next) => {
   const email = normalizeEmail(request.body?.email);
   const password = request.body?.password;
+  const rawName = request.body?.name;
+  const name = typeof rawName === "string" ? rawName.trim() : null;
+
+  if (!name || name.length > 120) {
+    return sendError(response, 400, "INVALID_NAME", "Ingresa un nombre de hasta 120 caracteres.");
+  }
 
   if (!isValidEmail(email) || typeof password !== "string" || password.length < 8 || password.length > 128) {
     return sendError(response, 400, "INVALID_INPUT", "Ingresa un correo válido y una contraseña de 8 a 128 caracteres.");
@@ -137,11 +147,13 @@ app.post("/api/auth/register", authLimiter, async (request, response, next) => {
 
   try {
     const passwordHash = await hashPassword(password);
-    const result = db.prepare("INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)")
-      .run(email, passwordHash, Date.now());
-    const user = { id: Number(result.lastInsertRowid), email };
-    const session = createSession(user.id);
-    return response.status(201).json({ user, token: session.token, expiresAt: session.expiresAt });
+    const registration = db.transaction(() => {
+      const result = db.prepare("INSERT INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)")
+        .run(email, name, passwordHash, Date.now());
+      const user = { id: Number(result.lastInsertRowid), email, name };
+      return { user, ...createSession(user.id) };
+    })();
+    return response.status(201).json(registration);
   } catch (error) {
     if (error.code === "SQLITE_CONSTRAINT_UNIQUE") {
       return sendError(response, 409, "REGISTRATION_FAILED", "No se pudo crear la cuenta con esos datos.");
@@ -158,7 +170,7 @@ app.post("/api/auth/login", authLimiter, async (request, response, next) => {
   }
 
   try {
-    const account = db.prepare("SELECT id, email, password_hash FROM users WHERE email = ?").get(email);
+    const account = db.prepare("SELECT id, email, name, password_hash FROM users WHERE email = ?").get(email);
     const passwordMatches = account
       ? await verifyPassword(password, account.password_hash)
       : await verifyPassword(password, await dummyPasswordHash);
@@ -168,7 +180,7 @@ app.post("/api/auth/login", authLimiter, async (request, response, next) => {
 
     const session = createSession(account.id);
     return response.json({
-      user: { id: account.id, email: account.email },
+      user: { id: account.id, email: account.email, name: account.name },
       token: session.token,
       expiresAt: session.expiresAt,
     });
