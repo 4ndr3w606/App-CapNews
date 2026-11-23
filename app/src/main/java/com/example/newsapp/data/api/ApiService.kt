@@ -16,6 +16,9 @@ interface ApiService {
     @GET("search")
     suspend fun buscarNoticias(
         @Query("q") consulta: String,
-        @Query("lang") lang: String = "es"
+        @Query("lang") lang: String = "es",
+        @Query("country") country: String? = null,
+        @Query("sortby") sortBy: String? = null,
+        @Query("in") searchFields: String = "title,description,content"
     ): Response<NewsResponse>
 }

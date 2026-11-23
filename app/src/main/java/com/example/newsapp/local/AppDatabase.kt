@@ -27,11 +27,24 @@ internal val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
-@Database(entities = [EntidadNoticia::class, FavoritoEntity::class], version = 3, exportSchema = false)
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            "CREATE TABLE local_news (scopeKey TEXT NOT NULL PRIMARY KEY, articlesJson TEXT NOT NULL)"
+        )
+    }
+}
+
+@Database(
+    entities = [EntidadNoticia::class, FavoritoEntity::class, LocalNewsEntity::class],
+    version = 4,
+    exportSchema = false
+)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun articleDao(): NoticiaDao
     abstract fun favoritoDao(): FavoritoDao
+    abstract fun localNewsDao(): LocalNewsDao
 
     companion object {
         @Volatile
@@ -44,7 +57,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "news_database"
                 )
-                    .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }

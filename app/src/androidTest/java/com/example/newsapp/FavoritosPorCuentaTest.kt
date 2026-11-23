@@ -7,6 +7,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.example.newsapp.local.AppDatabase
 import com.example.newsapp.local.FavoritoEntity
 import com.example.newsapp.local.MIGRATION_2_3
+import com.example.newsapp.local.MIGRATION_3_4
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -26,7 +27,7 @@ class FavoritosPorCuentaTest {
         try {
             crearBaseVersion2(databaseName, url)
             val database = Room.databaseBuilder(context, AppDatabase::class.java, databaseName)
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 .build()
             try {
                 val dao = database.favoritoDao()

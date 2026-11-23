@@ -94,6 +94,16 @@
 
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tvLocalNewsTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:accessibilityHeading="true"
+        android:paddingVertical="4dp"
+        android:textAppearance="?attr/textAppearanceTitleMedium"
+        android:textColor="?attr/colorOnSurface"
+        android:visibility="gone" />
+
     <ProgressBar
         android:id="@+id/newsProgress"
         style="?android:attr/progressBarStyleHorizontal"
@@ -110,6 +120,14 @@
         android:accessibilityLiveRegion="polite"
         android:paddingVertical="8dp"
         android:textColor="?attr/colorOnSurfaceVariant"
+        android:visibility="gone" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLocalNewsAction"
+        style="?attr/materialButtonOutlinedStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
         android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView

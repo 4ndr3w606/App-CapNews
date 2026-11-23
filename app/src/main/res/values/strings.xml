@@ -54,4 +54,13 @@
     <string name="weather_snow">Nieve</string>
     <string name="weather_storm">Tormenta eléctrica</string>
     <string name="weather_unknown">Condición no disponible</string>
+    <string name="category_nearby">Cerca de ti</string>
+    <string name="news_local_title">Noticias de %1$s</string>
+    <string name="news_regional_title">Noticias regionales · %1$s</string>
+    <string name="news_local_location_required">Elige una ciudad o usa tu ubicación aproximada para ver noticias de la zona.</string>
+    <string name="news_local_choose_location">Configurar ubicación</string>
+    <string name="news_local_no_results">No encontramos noticias recientes de esta zona.</string>
+    <string name="news_local_cached">Mostrando las últimas noticias guardadas de esta zona.</string>
+    <string name="news_local_unavailable">No pudimos cargar las noticias y todavía no hay noticias guardadas de esta zona.</string>
+    <string name="news_local_view_area">Ver noticias de %1$s</string>
 </resources>

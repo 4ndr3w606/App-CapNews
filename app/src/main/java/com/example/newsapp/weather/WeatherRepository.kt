@@ -11,7 +11,8 @@ internal data class WeatherCity(
     val latitude: Double,
     val longitude: Double,
     val admin1: String? = null,
-    val country: String? = null
+    val country: String? = null,
+    @SerializedName("country_code") val countryCode: String? = null
 ) {
     val label: String get() = listOfNotNull(name, admin1, country).distinct().joinToString(", ")
 }

@@ -4,9 +4,11 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Address
 import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
 import android.os.CancellationSignal
 import android.widget.EditText
 import android.widget.Toast
@@ -17,6 +19,7 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.example.newsapp.R
+import com.example.newsapp.data.NewsPlace
 import com.example.newsapp.databinding.CardHomeWeatherBinding
 import com.example.newsapp.utils.LectorWeb
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -27,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.math.round
 import kotlin.math.roundToInt
@@ -34,6 +38,7 @@ import kotlin.math.roundToInt
 internal class HomeWeather(
     private val activity: AppCompatActivity,
     private val binding: CardHomeWeatherBinding,
+    private val onPlaceChanged: (NewsPlace?) -> Unit,
     private val requestPermission: () -> Unit
 ) {
     private val preferences = activity.getSharedPreferences("home_weather", Context.MODE_PRIVATE)
@@ -54,9 +59,13 @@ internal class HomeWeather(
                     WeatherCity(
                         city,
                         preferences.getFloat("latitude", 0f).toDouble(),
-                        preferences.getFloat("longitude", 0f).toDouble()
+                        preferences.getFloat("longitude", 0f).toDouble(),
+                        admin1 = preferences.getString("city_region", null),
+                        countryCode = preferences.getString("city_country_code", null)
                     )
                 )
+            } else {
+                onPlaceChanged(null)
             }
         }
     }
@@ -70,7 +79,7 @@ internal class HomeWeather(
         }
     }
 
-    private fun showLocationOptions() {
+    fun showLocationOptions() {
         citySearch?.cancel()
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.weather_location)
@@ -118,6 +127,8 @@ internal class HomeWeather(
                         preferences.edit()
                             .putBoolean("device_location", false)
                             .putString("city", city.name)
+                            .putString("city_region", city.admin1)
+                            .putString("city_country_code", city.countryCode)
                             .putFloat("latitude", city.latitude.toFloat())
                             .putFloat("longitude", city.longitude.toFloat())
                             .apply()
@@ -133,21 +144,48 @@ internal class HomeWeather(
         }
     }
 
-    private fun loadCity(city: WeatherCity) = loadWeather(city.name) { city }
+    private fun loadCity(city: WeatherCity) {
+        onPlaceChanged(NewsPlace(city.name, city.admin1, city.countryCode))
+        loadWeather(city.name) { city }
+    }
 
-    private fun loadLocation() = loadWeather(
-        activity.getString(R.string.weather_your_location),
-        resolveCityName = true
-    ) {
-        val location = withTimeoutOrNull(7_000) { currentLocation() } ?: return@loadWeather null
-        val latitude = round(location.latitude * 100) / 100
-        val longitude = round(location.longitude * 100) / 100
-        WeatherCity(activity.getString(R.string.weather_your_location), latitude, longitude)
+    private fun loadLocation() {
+        val lastPlace = preferences.getString("device_city", null)?.let { city ->
+            NewsPlace(
+                city,
+                preferences.getString("device_region", null),
+                preferences.getString("device_country_code", null)
+            )
+        }
+        val label = lastPlace?.city ?: activity.getString(R.string.weather_your_location)
+        loadWeather(label, onDevicePlaceResolved = { resolved ->
+            if (resolved != null) {
+                preferences.edit()
+                    .putString("device_city", resolved.city)
+                    .putString("device_region", resolved.region)
+                    .putString("device_country_code", resolved.countryCode)
+                    .apply()
+            }
+            val place = resolved ?: lastPlace
+            if (place != null) binding.tvWeatherCity.text = place.city
+            onPlaceChanged(place)
+        }) {
+            val location = try {
+                withTimeoutOrNull(7_000) { currentLocation() }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            } ?: return@loadWeather null
+            val latitude = round(location.latitude * 100) / 100
+            val longitude = round(location.longitude * 100) / 100
+            WeatherCity(label, latitude, longitude)
+        }
     }
 
     private fun loadWeather(
         label: String,
-        resolveCityName: Boolean = false,
+        onDevicePlaceResolved: ((NewsPlace?) -> Unit)? = null,
         getCity: suspend () -> WeatherCity?
     ) {
         weatherRequest?.cancel()
@@ -158,10 +196,16 @@ internal class HomeWeather(
             try {
                 val city = getCity()
                 if (city == null) {
+                    onDevicePlaceResolved?.invoke(null)
                     binding.tvWeatherCondition.setText(R.string.weather_location_unavailable)
                     return@launch
                 }
                 binding.tvWeatherCity.text = city.name
+                if (onDevicePlaceResolved != null) {
+                    launch {
+                        onDevicePlaceResolved(withTimeoutOrNull(5_000) { resolvePlace(city) })
+                    }
+                }
                 val weather = WeatherRepository.current(city)
                 val temperature = weather?.temperature?.takeIf { it.isFinite() }
                 if (temperature == null) {
@@ -173,9 +217,6 @@ internal class HomeWeather(
                 )
                 binding.tvWeatherTemperature.isVisible = true
                 binding.tvWeatherCondition.setText(condition(weather?.code))
-                if (resolveCityName) {
-                    binding.tvWeatherCity.text = cityName(city.latitude, city.longitude)
-                }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
@@ -208,11 +249,35 @@ internal class HomeWeather(
     }
 
     @Suppress("DEPRECATION")
-    private suspend fun cityName(latitude: Double, longitude: Double): String = withContext(Dispatchers.IO) {
-        val address = runCatching {
-            Geocoder(activity.applicationContext).getFromLocation(latitude, longitude, 1)?.firstOrNull()
-        }.getOrNull()
-        address?.locality ?: address?.subAdminArea ?: activity.getString(R.string.weather_your_location)
+    private suspend fun resolvePlace(city: WeatherCity): NewsPlace? {
+        return try {
+            val geocoder = Geocoder(activity.applicationContext, Locale.forLanguageTag("es"))
+            val address = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                suspendCancellableCoroutine { continuation ->
+                    geocoder.getFromLocation(city.latitude, city.longitude, 1, object : Geocoder.GeocodeListener {
+                        override fun onGeocode(addresses: MutableList<Address>) {
+                            continuation.resume(addresses.firstOrNull())
+                        }
+
+                        override fun onError(errorMessage: String?) {
+                            continuation.resume(null)
+                        }
+                    })
+                }
+            } else {
+                withContext(Dispatchers.IO) {
+                    geocoder.getFromLocation(city.latitude, city.longitude, 1)?.firstOrNull()
+                }
+            } ?: return null
+            val name = address.locality?.takeIf { it.isNotBlank() }
+                ?: address.subAdminArea?.takeIf { it.isNotBlank() }
+                ?: return null
+            NewsPlace(name, address.adminArea?.takeIf { it.isNotBlank() }, address.countryCode)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun condition(code: Int?): Int = when (code ?: -1) {

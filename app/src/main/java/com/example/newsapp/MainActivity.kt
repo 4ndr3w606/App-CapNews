@@ -45,6 +45,7 @@ class MainActivity : AuthenticatedActivity() {
 
     private val categories = listOf(
         "world" to R.string.category_world,
+        NEARBY_CATEGORY to R.string.category_nearby,
         "technology" to R.string.category_technology,
         "sports" to R.string.category_sports,
         "business" to R.string.category_business,
@@ -66,14 +67,22 @@ class MainActivity : AuthenticatedActivity() {
         }
         binding.btnLogout.setOnClickListener { logout() }
 
-        configureFeed(accountId)
-        homeWeather = HomeWeather(this, binding.homeWeather) {
+        val viewModel = configureFeed(accountId)
+        homeWeather = HomeWeather(this, binding.homeWeather, viewModel::updateLocalPlace) {
             locationPermission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
         homeWeather.start()
+        binding.btnLocalNewsAction.setOnClickListener {
+            if (viewModel.state.value.notice == NewsNotice.LOCAL_LOCATION_REQUIRED) {
+                homeWeather.showLocationOptions()
+            } else {
+                viewModel.showAlternativeLocalArea()
+                binding.rvNews.scrollToPosition(0)
+            }
+        }
     }
 
-    private fun configureFeed(accountId: Long) {
+    private fun configureFeed(accountId: Long): NewsViewModel {
         val database = AppDatabase.getDatabase(this)
         val favorites = database.favoritoDao()
         val preferences = PreferencesManager(this)
@@ -83,7 +92,7 @@ class MainActivity : AuthenticatedActivity() {
         val factory = viewModelFactory {
             initializer {
                 NewsViewModel(
-                    NewsRepository(InstanciaRetrofit.api, database.articleDao()),
+                    NewsRepository(InstanciaRetrofit.api, database.articleDao(), database.localNewsDao()),
                     initialCategory,
                     createSavedStateHandle()
                 )
@@ -117,9 +126,11 @@ class MainActivity : AuthenticatedActivity() {
                 }
             }
         }
+        return viewModel
     }
 
     private fun configureFilters(viewModel: NewsViewModel, preferences: PreferencesManager) {
+        binding.svBuscador.isVisible = viewModel.category != NEARBY_CATEGORY
         binding.svBuscador.isSaveFromParentEnabled = false
         if (viewModel.query.isNotEmpty()) {
             binding.svBuscador.setIconified(false)
@@ -152,6 +163,8 @@ class MainActivity : AuthenticatedActivity() {
                 preferences.saveCategory(category)
                 viewModel.changeCategory(category)
                 binding.svBuscador.setQuery("", false)
+                binding.svBuscador.clearFocus()
+                binding.svBuscador.isVisible = category != NEARBY_CATEGORY
                 binding.rvNews.scrollToPosition(0)
             }
 
@@ -169,10 +182,27 @@ class MainActivity : AuthenticatedActivity() {
             NewsNotice.NO_CACHED_HEADLINES -> R.string.no_cached_news
             NewsNotice.EMPTY_SEARCH -> R.string.news_no_results
             NewsNotice.SEARCH_FAILED -> R.string.news_search_failed
+            NewsNotice.LOCAL_LOCATION_REQUIRED -> R.string.news_local_location_required
+            NewsNotice.LOCAL_NO_RESULTS -> R.string.news_local_no_results
+            NewsNotice.LOCAL_CACHED -> R.string.news_local_cached
+            NewsNotice.LOCAL_UNAVAILABLE -> R.string.news_local_unavailable
             null -> null
         }
         binding.tvNewsStatus.isVisible = message != null
         if (message != null) binding.tvNewsStatus.setText(message)
+        val area = state.localArea
+        binding.tvLocalNewsTitle.isVisible = area != null
+        if (area != null) {
+            val title = if (state.regional) R.string.news_regional_title else R.string.news_local_title
+            binding.tvLocalNewsTitle.text = getString(title, area)
+        }
+        val action = when {
+            state.notice == NewsNotice.LOCAL_LOCATION_REQUIRED -> getString(R.string.news_local_choose_location)
+            state.alternativeArea != null -> getString(R.string.news_local_view_area, state.alternativeArea)
+            else -> null
+        }
+        binding.btnLocalNewsAction.isVisible = action != null
+        binding.btnLocalNewsAction.text = action
     }
 
     private fun logout() {
