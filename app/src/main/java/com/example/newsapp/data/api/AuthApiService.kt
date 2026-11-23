@@ -24,7 +24,8 @@ data class AuthSessionResponse(
 )
 
 data class AuthUserResponse(
-    val user: AuthUser
+    val user: AuthUser,
+    val expiresAt: Long
 )
 
 interface AuthApiService {

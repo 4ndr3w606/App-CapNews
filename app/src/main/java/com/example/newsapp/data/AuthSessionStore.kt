@@ -17,7 +17,7 @@ class AuthSessionStore(context: Context) {
         Context.MODE_PRIVATE
     )
 
-    fun save(token: String, email: String) {
+    fun save(token: String, userId: Long, email: String, expiresAt: Long) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
         val encryptedToken = cipher.doFinal(token.toByteArray(StandardCharsets.UTF_8))
@@ -25,11 +25,13 @@ class AuthSessionStore(context: Context) {
         preferences.edit()
             .putString(KEY_TOKEN, Base64.encodeToString(encryptedToken, Base64.NO_WRAP))
             .putString(KEY_IV, Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .putLong(KEY_USER_ID, userId)
+            .putLong(KEY_EXPIRES_AT, expiresAt)
             .putString(KEY_EMAIL, email)
             .apply()
     }
 
-    fun getToken(): String? {
+    private fun getToken(): String? {
         val encryptedToken = preferences.getString(KEY_TOKEN, null) ?: return null
         val iv = preferences.getString(KEY_IV, null) ?: return null
 
@@ -51,6 +53,14 @@ class AuthSessionStore(context: Context) {
     }
 
     fun getEmail(): String = preferences.getString(KEY_EMAIL, "") ?: ""
+
+    internal fun getSession(): SavedAuthSession? = getToken()?.let { token ->
+        SavedAuthSession(
+            token,
+            preferences.getLong(KEY_USER_ID, 0),
+            preferences.getLong(KEY_EXPIRES_AT, 0)
+        )
+    }
 
     fun clear() {
         preferences.edit().clear().apply()
@@ -79,6 +89,8 @@ class AuthSessionStore(context: Context) {
         const val KEY_ALIAS = "com.example.newsapp.auth-session"
         const val KEY_TOKEN = "token"
         const val KEY_IV = "token_iv"
+        const val KEY_USER_ID = "user_id"
+        const val KEY_EXPIRES_AT = "expires_at"
         const val KEY_EMAIL = "email"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val TAG_LENGTH_BITS = 128

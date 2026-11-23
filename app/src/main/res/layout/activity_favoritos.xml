@@ -2,21 +2,29 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="?attr/colorSurface"
     android:orientation="vertical"
     android:padding="16dp">
 
     <TextView
-        android:layout_width="395dp"
-        android:layout_height="55dp"
-        android:layout_marginTop="35dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:background="#2196F3"
-        android:backgroundTint="#03A9F4"
+        android:background="?attr/colorPrimaryContainer"
         android:padding="10dp"
-        android:text="Mis Noticias Favoritas"
-        android:textColor="@color/white"
+        android:text="@string/favorites_title"
+        android:textColor="?attr/colorOnPrimaryContainer"
         android:textSize="22sp"
         android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvFavoritesEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:accessibilityLiveRegion="polite"
+        android:text="@string/favorites_empty"
+        android:textAppearance="?attr/textAppearanceBodyMedium"
+        android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvFavoritos"

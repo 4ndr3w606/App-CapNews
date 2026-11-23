@@ -1,11 +1,11 @@
 package com.example.newsapp.local
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "favoritos")
+@Entity(tableName = "favoritos_por_cuenta", primaryKeys = ["cuentaId", "url"])
 data class FavoritoEntity(
-    @PrimaryKey val url: String,
+    val cuentaId: Long,
+    val url: String,
     val title: String?,
     val description: String?,
     val urlToImage: String?,

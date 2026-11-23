@@ -6,13 +6,17 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Patterns
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.newsapp.data.AuthSessionStore
+import com.example.newsapp.data.SavedAuthSession
 import com.example.newsapp.data.api.AuthApiClient
 import com.example.newsapp.data.api.AuthCredentials
+import com.example.newsapp.data.api.AuthUser
 import com.example.newsapp.databinding.ActivityLoginBinding
+import com.example.newsapp.utils.applyScreenInsets
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
@@ -34,26 +38,45 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         binding = ActivityLoginBinding.inflate(layoutInflater)
+        binding.root.applyScreenInsets()
         setContentView(binding.root)
         sessionStore = AuthSessionStore(this)
 
         binding.btnLogin.setOnClickListener { submitCredentials() }
         binding.btnToggleAuth.setOnClickListener { setRegistrationMode(!registrationMode) }
         setRegistrationMode(false)
+        if (intent.getBooleanExtra(EXTRA_SESSION_EXPIRED, false)) {
+            showError(getString(R.string.session_expired))
+        }
         restoreSessionIfPresent()
     }
 
     private fun restoreSessionIfPresent() {
-        val token = sessionStore.getToken() ?: return
+        val session = sessionStore.getSession() ?: return
+        val now = System.currentTimeMillis()
+        if (session.isValidAt(now)) {
+            openMain()
+            return
+        }
+        if (session.hasExpired(now)) {
+            sessionStore.clear()
+            showError(getString(R.string.session_expired))
+            return
+        }
         if (needsLocalNetworkPermission()) return
         setBusy(true)
         lifecycleScope.launch {
             try {
-                val response = AuthApiClient.service.currentUser("Bearer $token")
+                val response = AuthApiClient.service.currentUser("Bearer ${session.token}")
                 if (response.isSuccessful) {
-                    val email = response.body()?.user?.email ?: sessionStore.getEmail()
-                    openMain(email)
+                    val authenticated = response.body()
+                    openAuthenticatedSession(
+                        session.token,
+                        authenticated?.user,
+                        authenticated?.expiresAt ?: 0
+                    )
                 } else {
                     if (response.code() == 401) sessionStore.clear()
                     setBusy(false)
@@ -117,8 +140,7 @@ class LoginActivity : AppCompatActivity() {
                         showError("El servidor devolvió una respuesta incompleta.")
                         return@launch
                     }
-                    sessionStore.save(session.token, session.user.email)
-                    openMain(session.user.email)
+                    openAuthenticatedSession(session.token, session.user, session.expiresAt)
                 } else {
                     setBusy(false)
                     showError(messageForStatus(response.code()))
@@ -181,14 +203,26 @@ class LoginActivity : AppCompatActivity() {
         else -> "El servidor no pudo completar la operación. Intenta más tarde."
     }
 
-    private fun openMain(email: String) {
-        startActivity(Intent(this, MainActivity::class.java).putExtra("email", email))
+    private fun openAuthenticatedSession(token: String, user: AuthUser?, expiresAt: Long) {
+        if (user == null || !SavedAuthSession(token, user.id, expiresAt).isValidAt(System.currentTimeMillis())) {
+            setBusy(false)
+            showError("El servidor devolvió una respuesta incompleta.")
+            return
+        }
+
+        sessionStore.save(token, user.id, user.email, expiresAt)
+        openMain()
+    }
+
+    private fun openMain() {
+        startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
 
-    private companion object {
-        const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
-        const val MIN_PASSWORD_LENGTH = 8
-        const val MAX_PASSWORD_LENGTH = 128
+    companion object {
+        internal const val EXTRA_SESSION_EXPIRED = "session_expired"
+        private const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
+        private const val MIN_PASSWORD_LENGTH = 8
+        private const val MAX_PASSWORD_LENGTH = 128
     }
 }

@@ -1,0 +1,3 @@
+<resources>
+    <integer name="news_column_count">2</integer>
+</resources>

@@ -118,14 +118,15 @@ function requireSession(request, response, next) {
 
   const now = Date.now();
   db.prepare("DELETE FROM sessions WHERE expires_at <= ?").run(now);
-  const user = db.prepare(`
-    SELECT users.id, users.email, users.name
+  const session = db.prepare(`
+    SELECT users.id, users.email, users.name, sessions.expires_at AS expiresAt
     FROM sessions JOIN users ON users.id = sessions.user_id
     WHERE sessions.token_hash = ? AND sessions.expires_at > ?
   `).get(tokenDigest(token), now);
 
-  if (!user) return sendError(response, 401, "UNAUTHENTICATED", "La sesión venció. Inicia sesión de nuevo.");
-  request.auth = { token, user };
+  if (!session) return sendError(response, 401, "UNAUTHENTICATED", "La sesión venció. Inicia sesión de nuevo.");
+  const { expiresAt, ...user } = session;
+  request.auth = { token, user, expiresAt };
   return next();
 }
 
@@ -190,7 +191,7 @@ app.post("/api/auth/login", authLimiter, async (request, response, next) => {
 });
 
 app.get("/api/auth/me", requireSession, (request, response) => {
-  return response.json({ user: request.auth.user });
+  return response.json({ user: request.auth.user, expiresAt: request.auth.expiresAt });
 });
 
 app.post("/api/auth/logout", requireSession, (request, response) => {

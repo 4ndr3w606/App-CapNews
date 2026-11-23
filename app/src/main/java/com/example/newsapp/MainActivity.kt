@@ -3,19 +3,19 @@ package com.example.newsapp
 import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.example.newsapp.data.AuthSessionStore
 import com.example.newsapp.data.PreferencesManager
 import com.example.newsapp.data.api.AuthApiClient
 import com.example.newsapp.databinding.ActivityMainBinding
+import com.example.newsapp.utils.applyScreenInsets
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AuthenticatedActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefsManager: PreferencesManager
-    private lateinit var sessionStore: AuthSessionStore
 
     // Mapeo en Español (Interfaz) to Inglés (API)
     private val categoriesMap = linkedMapOf(
@@ -30,15 +30,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (activeSession == null) return
         binding = ActivityMainBinding.inflate(layoutInflater)
+        binding.root.applyScreenInsets()
         setContentView(binding.root)
 
         prefsManager = PreferencesManager(this)
-        sessionStore = AuthSessionStore(this)
-
-        // Recuperar el correo desde el Intent o desde PreferencesManager
-        val emailIntent = intent.getStringExtra("email")
-        val email = emailIntent?.takeIf { it.isNotBlank() } ?: sessionStore.getEmail()
+        val email = sessionStore.getEmail()
         binding.tvUserEmail.text = "Correo: $email"
 
         // 1. Configurar adaptador del Spinner con los nombres en español
@@ -89,22 +87,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun logout() {
-        val token = sessionStore.getToken()
+        val token = activeSession?.token ?: return
+        binding.btnLogout.isEnabled = false
+        sessionStore.clear()
         lifecycleScope.launch {
             try {
-                if (token != null) {
+                withTimeoutOrNull(2_000) {
                     AuthApiClient.service.logout("Bearer $token")
                 }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: Exception) {
-                // Se limpia la sesión local aunque el servidor no esté disponible.
-            } finally {
-                sessionStore.clear()
-                val intent = Intent(this@MainActivity, LoginActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-                startActivity(intent)
-                finish()
+                // La sesión ya se cerró en el dispositivo.
             }
+            returnToLogin()
         }
     }
 }

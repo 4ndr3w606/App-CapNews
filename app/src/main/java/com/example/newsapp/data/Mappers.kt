@@ -33,9 +33,10 @@ fun EntidadNoticia.toDomain(): Article {
 }
 
 // Convertir un Article de la API a Entidad Favorito
-fun Article.toFavoritoEntity(): FavoritoEntity {
+fun Article.toFavoritoEntity(cuentaId: Long, url: String): FavoritoEntity {
     return FavoritoEntity(
-        url = this.url ?: "",
+        cuentaId = cuentaId,
+        url = url,
         title = this.title,
         description = this.description,
         urlToImage = this.urlToImage,
