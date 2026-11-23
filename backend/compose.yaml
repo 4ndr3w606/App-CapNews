@@ -1,0 +1,36 @@
+services:
+  api:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      GNEWS_API_KEY: ${GNEWS_API_KEY:?Configura GNEWS_API_KEY en .env}
+      TRUST_PROXY_HOPS: 1
+    networks:
+      - backend
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      CAPNEWS_DOMAIN: ${CAPNEWS_DOMAIN:?Configura CAPNEWS_DOMAIN en .env}
+      ACME_EMAIL: ${ACME_EMAIL:?Configura ACME_EMAIL en .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - backend
+    depends_on:
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  backend:

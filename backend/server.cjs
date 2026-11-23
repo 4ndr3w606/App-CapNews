@@ -3,6 +3,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { promisify } = require("node:util");
 const express = require("express");
+const envPath = path.join(__dirname, ".env");
+if (fs.existsSync(envPath)) process.loadEnvFile(envPath);
 const Database = require("better-sqlite3");
 const { rateLimit } = require("express-rate-limit");
 
@@ -197,6 +199,55 @@ app.get("/api/auth/me", requireSession, (request, response) => {
 app.post("/api/auth/logout", requireSession, (request, response) => {
   db.prepare("DELETE FROM sessions WHERE token_hash = ?").run(tokenDigest(request.auth.token));
   return response.status(204).end();
+});
+
+const newsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  keyGenerator: (request) => String(request.auth.user.id),
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: { code: "RATE_LIMITED", message: "Espera un momento para consultar noticias." } },
+});
+
+app.get("/api/news/:endpoint", requireSession, newsLimiter, async (request, response) => {
+  const endpoint = request.params.endpoint;
+  if (!["search", "top-headlines"].includes(endpoint)) {
+    return sendError(response, 404, "NOT_FOUND", "Consulta no disponible.");
+  }
+  const apiKey = process.env.GNEWS_API_KEY?.trim();
+  if (!apiKey) return sendError(response, 503, "NEWS_NOT_CONFIGURED", "El servicio de noticias está pendiente de configuración.");
+
+  const url = new URL(endpoint, "https://gnews.io/api/v4/");
+  const allowed = endpoint === "search"
+    ? ["q", "lang", "country", "sortby", "in"]
+    : ["category", "lang"];
+  for (const key of Object.keys(request.query)) {
+    const value = request.query[key];
+    if (!allowed.includes(key) || typeof value !== "string" || !value.trim() || value.length > 200) {
+      return sendError(response, 400, "INVALID_QUERY", "Los parámetros de noticias no son válidos.");
+    }
+    url.searchParams.set(key, value.trim());
+  }
+  if (endpoint === "search" && !url.searchParams.has("q")) {
+    return sendError(response, 400, "INVALID_QUERY", "Ingresa un término de búsqueda.");
+  }
+  if (endpoint === "search") url.searchParams.set("in", "title,description,content");
+  try {
+    const upstream = await fetch(url, {
+      headers: { "X-Api-Key": apiKey },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!upstream.ok) {
+      const status = upstream.status === 429 ? 429 : 502;
+      return sendError(response, status, "NEWS_PROVIDER_ERROR", "El proveedor de noticias no está disponible. Inténtalo más tarde.");
+    }
+    const data = await upstream.json();
+    if (!Array.isArray(data.articles)) throw new Error("Invalid provider response");
+    return response.json({ totalArticles: data.totalArticles, articles: data.articles });
+  } catch {
+    return sendError(response, 502, "NEWS_UNAVAILABLE", "No se pudo consultar el proveedor de noticias.");
+  }
 });
 
 app.use((error, _request, response, _next) => {

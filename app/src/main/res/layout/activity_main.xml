@@ -52,6 +52,16 @@
             app:tint="?attr/colorPrimary" />
 
         <ImageButton
+            android:id="@+id/btnDownloads"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/downloads_title"
+            android:scaleType="center"
+            app:srcCompat="@drawable/ic_download"
+            app:tint="?attr/colorPrimary" />
+
+        <ImageButton
             android:id="@+id/btn_logout"
             android:layout_width="48dp"
             android:layout_height="48dp"

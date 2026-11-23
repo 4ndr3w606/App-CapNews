@@ -5,9 +5,12 @@ import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.newsapp.local.AppDatabase
+import com.example.newsapp.local.DownloadedNews
 import com.example.newsapp.local.FavoritoEntity
 import com.example.newsapp.local.MIGRATION_2_3
 import com.example.newsapp.local.MIGRATION_3_4
+import com.example.newsapp.local.MIGRATION_4_5
+import com.example.newsapp.local.MIGRATION_5_6
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -27,12 +30,19 @@ class FavoritosPorCuentaTest {
         try {
             crearBaseVersion2(databaseName, url)
             val database = Room.databaseBuilder(context, AppDatabase::class.java, databaseName)
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
             try {
                 val dao = database.favoritoDao()
                 val cuentaA = FavoritoEntity(1, url, "Titular", null, null, null, null)
                 val cuentaB = cuentaA.copy(cuentaId = 2)
+                val downloads = database.downloadedNewsDao()
+                val download = DownloadedNews(1, url, "Titular", null, null, "Texto guardado", 1L)
+                downloads.insert(download)
+                assertEquals(download, downloads.find(1, url))
+                assertEquals(null, downloads.find(2, url))
+                downloads.delete(2, url)
+                assertEquals(download, downloads.find(1, url))
 
                 assertTrue(dao.obtenerFavoritos(1).isEmpty())
                 assertTrue(dao.obtenerFavoritos(2).isEmpty())

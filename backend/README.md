@@ -1,4 +1,35 @@
-# API de autenticación de CapNews
+# Backend de CapNews
+
+La app consulta las noticias mediante este backend. La clave de GNews se configura con
+`GNEWS_API_KEY` en `backend/.env` o en las variables del servidor. El APK contiene
+la URL del backend y usa el token de sesión del usuario. El servidor carga `.env`
+automáticamente cuando existe.
+
+## Noticias
+
+`GET /api/news/top-headlines?category=world&lang=es` y
+`GET /api/news/search?q=Neiva&lang=es&country=co&sortby=relevance` requieren
+`Authorization: Bearer <token>`. Las búsquedas incluyen título, descripción y cuerpo.
+Cada cuenta puede realizar hasta 30 consultas por minuto. Los errores del proveedor
+se devuelven con mensajes genéricos.
+
+## HTTPS
+
+El despliegue incluido usa Docker Compose y Caddy sobre un servidor Linux con
+dominio público. Caddy obtiene y renueva los certificados HTTPS.
+
+1. Instala Docker Engine y Docker Compose en el servidor.
+2. Copia esta carpeta al servidor y crea `.env` a partir de `.env.example`.
+   Define `GNEWS_API_KEY`, `CAPNEWS_DOMAIN` con el dominio sin protocolo
+   y `ACME_EMAIL` con tu correo para los certificados.
+3. Apunta los registros DNS del dominio al servidor y habilita los puertos 80 y 443.
+4. Desde esta carpeta ejecuta `docker compose up -d --build`.
+5. Comprueba `https://TU_DOMINIO/health` y configura en `local.properties`
+   `authApiBaseUrl=https://TU_DOMINIO/` antes de generar el APK.
+
+Con Docker Compose, SQLite queda en el sistema de archivos del contenedor de la API.
+Al eliminar o recrear ese contenedor se pierden sus cuentas y sesiones. Los volúmenes
+de Caddy guardan únicamente los certificados y la configuración de HTTPS.
 
 API propia para crear cuentas, iniciar y cerrar sesión. Usa SQLite para guardar cuentas y sesiones. Las contraseñas se derivan con `scrypt`; la base de datos guarda el hash, nunca la contraseña original. El cliente recibe un token aleatorio y el servidor guarda únicamente su SHA-256.
 
@@ -21,7 +52,7 @@ En Android 17 o posterior, la app de depuración solicita acceso a la red local 
 
 La base se crea en `backend/data/capnews.sqlite`. Esa carpeta está excluida de Git. Puedes cambiar la ruta con `AUTH_DB_PATH`.
 
-`backend/.env.example` documenta las variables; el servidor no carga ese archivo automáticamente. Define las variables en el entorno del proceso o en el panel de secretos/configuración del proveedor.
+`backend/.env.example` documenta las variables. Copia sus valores a `backend/.env` o define las variables en el entorno del proceso o en el panel de configuración del proveedor.
 
 En el emulador Android, el build `debug` apunta a `http://10.0.2.2:3000/`. Para un teléfono físico, configura `authApiBaseUrl` con una dirección alcanzable desde el teléfono, por ejemplo en `local.properties`:
 
@@ -35,7 +66,7 @@ La variante debug permite HTTP para pruebas locales. En una versión compartida 
 authApiBaseUrl=https://tu-dominio.example/
 ```
 
-No despliegues una versión release con HTTP. Usa un servidor accesible públicamente, HTTPS y almacenamiento persistente para el archivo SQLite. SQLite sirve para una instancia pequeña; una infraestructura con varias instancias debería usar una base de datos compartida.
+Para una versión release, usa un servidor accesible públicamente mediante HTTPS.
 
 Si el servicio está detrás de un proxy inverso de confianza, configura `TRUST_PROXY_HOPS` con el número exacto de proxies para que el límite de intentos use la IP del cliente. No lo habilites sin conocer la topología del despliegue.
 

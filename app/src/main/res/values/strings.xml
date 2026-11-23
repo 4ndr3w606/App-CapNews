@@ -63,4 +63,16 @@
     <string name="news_local_cached">Mostrando las últimas noticias guardadas de esta zona.</string>
     <string name="news_local_unavailable">No pudimos cargar las noticias y todavía no hay noticias guardadas de esta zona.</string>
     <string name="news_local_view_area">Ver noticias de %1$s</string>
+    <string name="downloads_title">Descargas</string>
+    <string name="downloads_back">Volver</string>
+    <string name="downloads_empty">Toca el icono de descarga en una noticia para leerla sin conexión.</string>
+    <string name="download_article">Descargar noticia</string>
+    <string name="download_started">Descargando noticia…</string>
+    <string name="download_saved">Noticia descargada</string>
+    <string name="download_failed">No se pudo descargar la noticia. Comprueba tu conexión e inténtalo de nuevo.</string>
+    <string name="download_body_unavailable">No se pudo obtener el texto de la noticia en el sitio del medio.</string>
+    <string name="download_remove">Eliminar descarga</string>
+    <string name="download_delete">Eliminar</string>
+    <string name="download_missing">Esta descarga ya no está disponible.</string>
+    <string name="download_reader_title">Lectura sin conexión</string>
 </resources>

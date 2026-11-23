@@ -20,6 +20,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.newsapp.adapter.NewsAdapter
 import com.example.newsapp.data.NewsRepository
+import com.example.newsapp.data.OfflineNewsActions
 import com.example.newsapp.data.PreferencesManager
 import com.example.newsapp.data.api.AuthApiClient
 import com.example.newsapp.data.api.InstanciaRetrofit
@@ -65,6 +66,9 @@ class MainActivity : AuthenticatedActivity() {
         binding.btnVerFavoritos.setOnClickListener {
             startActivity(Intent(this, FavoritosActivity::class.java))
         }
+        binding.btnDownloads.setOnClickListener {
+            startActivity(Intent(this, DownloadsActivity::class.java))
+        }
         binding.btnLogout.setOnClickListener { logout() }
 
         val viewModel = configureFeed(accountId)
@@ -85,6 +89,8 @@ class MainActivity : AuthenticatedActivity() {
     private fun configureFeed(accountId: Long): NewsViewModel {
         val database = AppDatabase.getDatabase(this)
         val favorites = database.favoritoDao()
+        val downloads = database.downloadedNewsDao()
+        val offlineNews = OfflineNewsActions(this, accountId, downloads)
         val preferences = PreferencesManager(this)
         val initialCategory = preferences.getCategory().takeIf { saved ->
             categories.any { it.first == saved }
@@ -92,7 +98,11 @@ class MainActivity : AuthenticatedActivity() {
         val factory = viewModelFactory {
             initializer {
                 NewsViewModel(
-                    NewsRepository(InstanciaRetrofit.api, database.articleDao(), database.localNewsDao()),
+                    NewsRepository(
+                        InstanciaRetrofit.create { sessionStore.getSession()?.token },
+                        database.articleDao(),
+                        database.localNewsDao()
+                    ),
                     initialCategory,
                     createSavedStateHandle()
                 )
@@ -110,7 +120,8 @@ class MainActivity : AuthenticatedActivity() {
                     val message = if (saved) R.string.home_favorite_added else R.string.home_favorite_removed
                     Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
                 }
-            }
+            },
+            onDownloadClick = offlineNews::download
         )
         binding.rvNews.layoutManager = GridLayoutManager(this, resources.getInteger(R.integer.news_column_count))
         binding.rvNews.adapter = newsAdapter
@@ -118,6 +129,9 @@ class MainActivity : AuthenticatedActivity() {
         configureFilters(viewModel, preferences)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    downloads.observeUrls(accountId).collect { newsAdapter.actualizarDescargas(it.toSet()) }
+                }
                 viewModel.state.combine(favorites.observarUrlsFavoritas(accountId)) { state, urls ->
                     state to urls.toSet()
                 }.collect { (state, urls) ->

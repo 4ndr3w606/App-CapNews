@@ -13,9 +13,12 @@ import com.example.newsapp.databinding.ItemNewsBinding
 class NewsAdapter(
     private var articles: List<Article>,
     private val onItemClick: (Article) -> Unit,
-    private val onFavoritoClick: (Article) -> Unit
+    private val onFavoritoClick: ((Article) -> Unit)? = null,
+    private val onDownloadClick: ((Article) -> Unit)? = null,
+    private val onDeleteDownload: ((Article) -> Unit)? = null
 ) : RecyclerView.Adapter<NewsAdapter.NewsViewHolder>() {
     private var favoriteUrls = emptySet<String>()
+    private var downloadedUrls = emptySet<String>()
 
     inner class NewsViewHolder(private val binding: ItemNewsBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -38,9 +41,26 @@ class NewsAdapter(
 
 
             bindFavorite(article.url in favoriteUrls)
+            binding.btnFavorito.isVisible = onFavoritoClick != null
             binding.btnFavorito.setOnClickListener {
-                onFavoritoClick(article)
+                onFavoritoClick?.invoke(article)
             }
+            bindDownload(article)
+        }
+
+        fun bindDownload(article: Article) {
+            val button = binding.btnDownload
+            val downloaded = article.url in downloadedUrls
+            val removing = onDeleteDownload != null
+            button.isVisible = onDownloadClick != null || removing
+            button.setImageResource(if (removing) android.R.drawable.ic_menu_delete else R.drawable.ic_download)
+            button.isEnabled = removing || !downloaded
+            button.contentDescription = button.context.getString(when {
+                removing -> R.string.download_remove
+                downloaded -> R.string.download_saved
+                else -> R.string.download_article
+            })
+            button.setOnClickListener { (onDeleteDownload ?: onDownloadClick)?.invoke(article) }
         }
 
         fun bindFavorite(saved: Boolean) {
@@ -72,10 +92,15 @@ class NewsAdapter(
     override fun getItemCount(): Int = articles.size
 
     override fun onBindViewHolder(holder: NewsViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty()) {
+            super.onBindViewHolder(holder, position, payloads)
+            return
+        }
         if (FavoriteChanged in payloads) {
             holder.bindFavorite(articles[position].url in favoriteUrls)
-        } else {
-            super.onBindViewHolder(holder, position, payloads)
+        }
+        if (DownloadChanged in payloads) {
+            holder.bindDownload(articles[position])
         }
     }
 
@@ -96,5 +121,16 @@ class NewsAdapter(
         }
     }
 
+    fun actualizarDescargas(urls: Set<String>) {
+        val previous = downloadedUrls
+        downloadedUrls = urls
+        articles.forEachIndexed { index, article ->
+            if ((article.url in previous) != (article.url in urls)) {
+                notifyItemChanged(index, DownloadChanged)
+            }
+        }
+    }
+
     private object FavoriteChanged
+    private object DownloadChanged
 }

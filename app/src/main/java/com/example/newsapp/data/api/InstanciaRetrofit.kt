@@ -8,30 +8,26 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 
 object InstanciaRetrofit {
-
-    private const val BASE_URL = "https://gnews.io/api/v4/"
-
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BASIC
     }
 
-    private val client = OkHttpClient.Builder()
-        .addInterceptor { chain ->
-            val request = chain.request().newBuilder()
-                .header("X-Api-Key", BuildConfig.GNEWS_API_KEY)
-                .build()
-            chain.proceed(request)
-        }
-        .addInterceptor(loggingInterceptor)
-        .build()
+    fun create(tokenProvider: () -> String?): ApiService {
+        val client = OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .header("Authorization", "Bearer ${tokenProvider().orEmpty()}")
+                    .build()
+                chain.proceed(request)
+            }
+            .addInterceptor(loggingInterceptor)
+            .build()
 
-    val api: ApiService by lazy{
-        Retrofit.Builder()
-            .baseUrl(BASE_URL)
+        return Retrofit.Builder()
+            .baseUrl(BuildConfig.AUTH_API_BASE_URL.trimEnd('/') + "/api/news/")
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
-
     }
 }

@@ -11,10 +11,6 @@ val localProperties = Properties().apply {
         propertiesFile.inputStream().use { load(it) }
     }
 }
-val gnewsApiKey = providers.gradleProperty("gnewsApiKey").orNull
-    ?: System.getenv("GNEWS_API_KEY")
-    ?: localProperties.getProperty("gnewsApiKey")
-    ?: ""
 val configuredAuthApiBaseUrl = providers.gradleProperty("authApiBaseUrl").orNull
     ?: System.getenv("AUTH_API_BASE_URL")
     ?: localProperties.getProperty("authApiBaseUrl")
@@ -33,7 +29,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "GNEWS_API_KEY", "\"$gnewsApiKey\"")
         buildConfigField(
             "String",
             "AUTH_API_BASE_URL",

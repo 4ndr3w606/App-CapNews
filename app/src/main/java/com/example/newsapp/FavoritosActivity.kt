@@ -8,6 +8,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.newsapp.adapter.NewsAdapter
+import com.example.newsapp.data.OfflineNewsActions
 import com.example.newsapp.data.toDomain
 import com.example.newsapp.databinding.ActivityFavoritosBinding
 import com.example.newsapp.local.AppDatabase
@@ -30,7 +31,10 @@ class FavoritosActivity : AuthenticatedActivity() {
         supportActionBar?.title = "Noticias Favoritas"
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        val favoritoDao = AppDatabase.getDatabase(this).favoritoDao()
+        val database = AppDatabase.getDatabase(this)
+        val favoritoDao = database.favoritoDao()
+        val downloads = database.downloadedNewsDao()
+        val offlineNews = OfflineNewsActions(this, cuentaId, downloads)
 
         newsAdapter = NewsAdapter(
             articles = emptyList(),
@@ -44,7 +48,8 @@ class FavoritosActivity : AuthenticatedActivity() {
                         Toast.makeText(this@FavoritosActivity, "Eliminado de favoritos", Toast.LENGTH_SHORT).show()
                     }
                 }
-            }
+            },
+            onDownloadClick = offlineNews::download
         )
 
         binding.rvFavoritos.apply {
@@ -54,6 +59,9 @@ class FavoritosActivity : AuthenticatedActivity() {
 
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    downloads.observeUrls(cuentaId).collect { newsAdapter.actualizarDescargas(it.toSet()) }
+                }
                 favoritoDao.observarFavoritos(cuentaId).collect { favorites ->
                     newsAdapter.actualizarFavoritos(favorites.map { it.url }.toSet())
                     newsAdapter.actualizarNews(favorites.map { it.toDomain() })

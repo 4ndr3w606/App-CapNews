@@ -95,6 +95,17 @@
                     android:scaleType="center"
                     app:srcCompat="@drawable/news_favorite_icon"
                     app:tint="@color/news_favorite_tint" />
+
+                <ImageButton
+                    android:id="@+id/btnDownload"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/download_article"
+                    android:scaleType="center"
+                    android:visibility="gone"
+                    app:srcCompat="@drawable/ic_download"
+                    app:tint="?attr/colorPrimary" />
             </LinearLayout>
 
         </LinearLayout>

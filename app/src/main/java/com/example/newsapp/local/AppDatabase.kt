@@ -35,9 +35,34 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+internal val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE downloaded_news (
+                accountId INTEGER NOT NULL,
+                url TEXT NOT NULL,
+                title TEXT NOT NULL,
+                sourceName TEXT,
+                publishedAt TEXT,
+                body TEXT NOT NULL,
+                downloadedAt INTEGER NOT NULL,
+                PRIMARY KEY (accountId, url)
+            )
+            """.trimIndent()
+        )
+    }
+}
+
+internal val MIGRATION_5_6 = object : Migration(5, 6) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE downloaded_news ADD COLUMN coverImage BLOB")
+    }
+}
+
 @Database(
-    entities = [EntidadNoticia::class, FavoritoEntity::class, LocalNewsEntity::class],
-    version = 4,
+    entities = [EntidadNoticia::class, FavoritoEntity::class, LocalNewsEntity::class, DownloadedNews::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -45,6 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun articleDao(): NoticiaDao
     abstract fun favoritoDao(): FavoritoDao
     abstract fun localNewsDao(): LocalNewsDao
+    abstract fun downloadedNewsDao(): DownloadedNewsDao
 
     companion object {
         @Volatile
@@ -57,7 +83,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "news_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .build()
                     .also { INSTANCE = it }
             }

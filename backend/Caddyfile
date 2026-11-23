@@ -1,0 +1,7 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$CAPNEWS_DOMAIN} {
+    reverse_proxy api:3000
+}
