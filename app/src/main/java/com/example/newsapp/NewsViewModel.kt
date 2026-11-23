@@ -27,19 +27,20 @@ internal data class NewsListState(
 
 internal class NewsViewModel(
     private val repository: NewsRepository,
-    private val category: String,
+    category: String,
     private val savedState: SavedStateHandle,
     requestScope: CoroutineScope? = null
 ) : ViewModel() {
-    private class Request(val query: String, val submitted: Boolean)
+    private class Request(val category: String, val query: String, val submitted: Boolean)
 
     private val requests = MutableStateFlow(
-        Request(savedState[QUERY] ?: "", savedState[SUBMITTED] ?: false)
+        Request(savedState[CATEGORY] ?: category, savedState[QUERY] ?: "", savedState[SUBMITTED] ?: false)
     )
     private var startedRequest: Request? = null
     private val mutableState = MutableStateFlow(NewsListState())
     val state = mutableState.asStateFlow()
     val query: String get() = requests.value.query
+    val category: String get() = requests.value.category
 
     init {
         (requestScope ?: viewModelScope).launch {
@@ -55,7 +56,11 @@ internal class NewsViewModel(
 
     fun changeQuery(input: String) {
         val query = input.trim()
-        if (query != this.query) enqueue(Request(query, submitted = false))
+        if (query != this.query) enqueue(Request(category, query, submitted = false))
+    }
+
+    fun changeCategory(category: String) {
+        if (category != this.category) enqueue(Request(category, "", submitted = false))
     }
 
     fun submitQuery(input: String) {
@@ -64,10 +69,11 @@ internal class NewsViewModel(
         val current = requests.value
         val alreadyRequested = current.query == query && (current.submitted || current === startedRequest)
         if (alreadyRequested && state.value.notice != NewsNotice.SEARCH_FAILED) return
-        enqueue(Request(query, submitted = true))
+        enqueue(Request(current.category, query, submitted = true))
     }
 
     private fun enqueue(request: Request) {
+        savedState[CATEGORY] = request.category
         savedState[QUERY] = request.query
         savedState[SUBMITTED] = request.submitted
         mutableState.value = NewsListState()
@@ -75,10 +81,10 @@ internal class NewsViewModel(
     }
 
     private suspend fun loadHeadlines(request: Request) {
-        val cached = dataOrNull { repository.cachedHeadlines(category) }.orEmpty()
+        val cached = dataOrNull { repository.cachedHeadlines(request.category) }.orEmpty()
         publish(request, NewsListState(articles = cached))
 
-        val fresh = dataOrNull { repository.refreshHeadlines(category) }
+        val fresh = dataOrNull { repository.refreshHeadlines(request.category) }
         val notice = when {
             fresh == null && cached.isEmpty() -> NewsNotice.NO_CACHED_HEADLINES
             fresh == null -> NewsNotice.CACHED_HEADLINES
@@ -121,6 +127,7 @@ internal class NewsViewModel(
         }
 
     private companion object {
+        const val CATEGORY = "news_category"
         const val QUERY = "news_query"
         const val SUBMITTED = "news_query_submitted"
         const val MIN_SEARCH_LENGTH = 3

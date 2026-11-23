@@ -113,6 +113,35 @@ class NewsViewModelTest {
         }
     }
 
+    @Test
+    fun startsWithSavedCategoryAndChangingCategoryReturnsToHeadlines() = runBlocking {
+        val requestedCategories = mutableListOf<String>()
+        val api = object : ApiService {
+            override suspend fun getTopHeadlines(category: String, lang: String): Response<NewsResponse> {
+                requestedCategories += category
+                return response(article(category))
+            }
+
+            override suspend fun buscarNoticias(consulta: String, lang: String): Response<NewsResponse> =
+                response(article(consulta))
+        }
+        val scope = CoroutineScope(coroutineContext + SupervisorJob())
+        val viewModel = NewsViewModel(NewsRepository(api, CachedDao()), "sports", SavedStateHandle(), scope)
+        try {
+            withTimeout(5_000) {
+                assertEquals("sports", viewModel.state.first { !it.loading }.articles.single().title)
+                viewModel.submitQuery("elecciones")
+                assertEquals("elecciones", viewModel.state.first { !it.loading }.articles.single().title)
+                viewModel.changeCategory("technology")
+                assertEquals("", viewModel.query)
+                assertEquals("technology", viewModel.state.first { !it.loading }.articles.single().title)
+                assertEquals(listOf("sports", "technology"), requestedCategories)
+            }
+        } finally {
+            scope.cancel()
+        }
+    }
+
     private fun article(name: String) = Article(null, null, name, null, "https://example.com/$name", null, null, null)
 
     private fun response(article: Article): Response<NewsResponse> =
