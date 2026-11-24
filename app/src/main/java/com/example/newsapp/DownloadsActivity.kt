@@ -1,7 +1,11 @@
 package com.example.newsapp
 
 import android.content.Intent
+import android.content.DialogInterface
+import android.content.res.ColorStateList
 import android.os.Bundle
+import android.view.MenuItem
+import androidx.core.view.MenuItemCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -13,8 +17,11 @@ import com.example.newsapp.data.api.Article
 import com.example.newsapp.data.api.Source
 import com.example.newsapp.databinding.ActivityDownloadsBinding
 import com.example.newsapp.local.AppDatabase
+import com.example.newsapp.utils.CompartirNoticia
 import com.example.newsapp.utils.applyScreenInsets
+import com.example.newsapp.utils.mostrarAviso
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.launch
 
 class DownloadsActivity : AuthenticatedActivity() {
@@ -48,6 +55,19 @@ class DownloadsActivity : AuthenticatedActivity() {
                 }
                 binding.readerBody.text = saved.body
                 binding.downloadReader.isVisible = true
+                if (CompartirNoticia.enlaceValido(saved.url)) {
+                    val shareItem = binding.downloadsToolbar.menu.add(R.string.news_share)
+                        .setIcon(R.drawable.ic_share)
+                        .setOnMenuItemClickListener {
+                            CompartirNoticia.abrirMenu(binding.root, saved.title, saved.url)
+                            true
+                        }
+                    val iconColor = MaterialColors.getColor(
+                        binding.downloadsToolbar, com.google.android.material.R.attr.colorOnSurface
+                    )
+                    MenuItemCompat.setIconTintList(shareItem, ColorStateList.valueOf(iconColor))
+                    shareItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
+                }
             }
             return
         }
@@ -59,14 +79,19 @@ class DownloadsActivity : AuthenticatedActivity() {
             },
             onDeleteDownload = { article ->
                 article.url?.let { url ->
-                    MaterialAlertDialogBuilder(this)
+                    val dialog = MaterialAlertDialogBuilder(this)
                         .setTitle(R.string.download_remove)
-                        .setMessage(article.title)
+                        .setMessage(getString(R.string.download_remove_message, article.title.orEmpty()))
                         .setNegativeButton(android.R.string.cancel, null)
                         .setPositiveButton(R.string.download_delete) { _, _ ->
-                            lifecycleScope.launch { dao.delete(accountId, url) }
+                            lifecycleScope.launch {
+                                dao.delete(accountId, url)
+                                binding.root.mostrarAviso(R.string.download_removed)
+                            }
                         }
                         .show()
+                    val deleteButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+                    deleteButton.setTextColor(MaterialColors.getColor(deleteButton, androidx.appcompat.R.attr.colorError))
                 }
             }
         )

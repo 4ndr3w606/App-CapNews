@@ -1,7 +1,6 @@
 package com.example.newsapp
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -14,6 +13,7 @@ import com.example.newsapp.databinding.ActivityFavoritosBinding
 import com.example.newsapp.local.AppDatabase
 import com.example.newsapp.utils.LectorWeb
 import com.example.newsapp.utils.applyScreenInsets
+import com.example.newsapp.utils.mostrarAviso
 import kotlinx.coroutines.launch
 
 class FavoritosActivity : AuthenticatedActivity() {
@@ -45,7 +45,7 @@ class FavoritosActivity : AuthenticatedActivity() {
                 val url = article.url ?: return@eliminar
                 lifecycleScope.launch {
                     if (favoritoDao.eliminarFavorito(cuentaId, url) > 0) {
-                        Toast.makeText(this@FavoritosActivity, "Eliminado de favoritos", Toast.LENGTH_SHORT).show()
+                        binding.root.mostrarAviso(R.string.home_favorite_removed)
                     }
                 }
             },

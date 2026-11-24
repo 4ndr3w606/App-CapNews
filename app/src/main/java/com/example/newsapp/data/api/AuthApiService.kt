@@ -9,12 +9,14 @@ import retrofit2.http.POST
 data class AuthCredentials(
     val email: String,
     val password: String,
-    val name: String? = null
+    val name: String? = null,
+    val termsVersion: Int? = null
 )
 
 data class AuthUser(
     val id: Long,
-    val email: String
+    val email: String,
+    val name: String? = null
 )
 
 data class AuthSessionResponse(

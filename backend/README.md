@@ -83,7 +83,7 @@ Para un APK de producción, configura `registrationApiUrl` en `src/environments/
 
 Todas las respuestas de error usan `{ "error": { "code": "...", "message": "..." } }`.
 
-- `POST /api/auth/register` con `{ "name": "...", "email": "...", "password": "..." }` crea una cuenta y devuelve `user`, `token` y `expiresAt`. El nombre de usuario es obligatorio y admite hasta 120 caracteres después de quitar los espacios iniciales y finales.
+- `POST /api/auth/register` con `{ "name": "...", "email": "...", "password": "...", "termsVersion": 1 }` crea una cuenta y devuelve `user`, `token` y `expiresAt`. El nombre de usuario admite hasta 120 caracteres después de quitar los espacios iniciales y finales. El cliente envía `termsVersion` después de obtener la aceptación explícita. El servidor exige la versión vigente y guarda la versión y la fecha de aceptación en milisegundos desde la época Unix.
 - `POST /api/auth/login` con `email` y `password` autentica y crea una sesión.
 - `GET /api/auth/me` acepta `Authorization: Bearer <token>` y devuelve el usuario actual y `expiresAt`, el vencimiento de la sesión en milisegundos desde la época Unix.
 - `POST /api/auth/logout` acepta `Authorization: Bearer <token>` y revoca la sesión.

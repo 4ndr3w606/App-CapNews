@@ -9,6 +9,7 @@ import com.bumptech.glide.Glide
 import com.example.newsapp.R
 import com.example.newsapp.data.api.Article
 import com.example.newsapp.databinding.ItemNewsBinding
+import com.example.newsapp.utils.CompartirNoticia
 
 class NewsAdapter(
     private var articles: List<Article>,
@@ -46,6 +47,10 @@ class NewsAdapter(
                 onFavoritoClick?.invoke(article)
             }
             bindDownload(article)
+            binding.btnShare.isVisible = CompartirNoticia.enlaceValido(article.url)
+            binding.btnShare.setOnClickListener { view ->
+                CompartirNoticia.abrirMenu(view, article.title, article.url)
+            }
         }
 
         fun bindDownload(article: Article) {

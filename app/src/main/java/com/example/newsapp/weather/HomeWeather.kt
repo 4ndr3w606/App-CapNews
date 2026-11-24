@@ -10,8 +10,6 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.CancellationSignal
-import android.widget.EditText
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationManagerCompat
@@ -21,7 +19,9 @@ import androidx.lifecycle.lifecycleScope
 import com.example.newsapp.R
 import com.example.newsapp.data.NewsPlace
 import com.example.newsapp.databinding.CardHomeWeatherBinding
+import com.example.newsapp.databinding.DialogWeatherCityBinding
 import com.example.newsapp.utils.LectorWeb
+import com.example.newsapp.utils.mostrarAviso
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -75,7 +75,7 @@ internal class HomeWeather(
             preferences.edit().putBoolean("device_location", true).apply()
             loadLocation()
         } else {
-            toast(R.string.weather_permission_denied)
+            binding.root.mostrarAviso(R.string.weather_permission_denied, error = true)
         }
     }
 
@@ -93,19 +93,22 @@ internal class HomeWeather(
     }
 
     private fun showCitySearch() {
-        val input = EditText(activity).apply {
-            hint = activity.getString(R.string.weather_city_hint)
-            setSingleLine()
-        }
-        MaterialAlertDialogBuilder(activity)
+        val content = DialogWeatherCityBinding.inflate(activity.layoutInflater)
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.weather_choose_city)
-            .setView(input)
-            .setPositiveButton(R.string.weather_search_city) { _, _ ->
-                val query = input.text.toString().trim()
-                if (query.length >= 2) searchCities(query) else toast(R.string.weather_city_short)
-            }
+            .setView(content.root)
+            .setPositiveButton(R.string.weather_search_city, null)
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+        dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener {
+            val query = content.cityInput.text?.toString()?.trim().orEmpty()
+            if (query.length < 2) {
+                content.cityField.error = activity.getString(R.string.weather_city_short)
+            } else {
+                dialog.dismiss()
+                searchCities(query)
+            }
+        }
     }
 
     private fun searchCities(query: String) {
@@ -114,7 +117,7 @@ internal class HomeWeather(
             try {
                 val cities = WeatherRepository.search(query)
                 if (cities.isEmpty()) {
-                    toast(R.string.weather_city_not_found)
+                    binding.root.mostrarAviso(R.string.weather_city_not_found)
                     return@launch
                 }
                 if (!activity.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
@@ -139,7 +142,7 @@ internal class HomeWeather(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                toast(R.string.weather_city_search_failed)
+                binding.root.mostrarAviso(R.string.weather_city_search_failed, error = true)
             }
         }
     }
@@ -291,5 +294,4 @@ internal class HomeWeather(
         else -> R.string.weather_unknown
     }
 
-    private fun toast(message: Int) = Toast.makeText(activity, message, Toast.LENGTH_SHORT).show()
 }

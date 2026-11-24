@@ -82,6 +82,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:maxLines="2"
                     android:textColor="?attr/colorPrimary"
                     android:textSize="12sp"
                     android:textStyle="italic" />
@@ -106,6 +108,16 @@
                     android:visibility="gone"
                     app:srcCompat="@drawable/ic_download"
                     app:tint="?attr/colorPrimary" />
+
+                <ImageButton
+                    android:id="@+id/btnShare"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/news_share"
+                    android:scaleType="center"
+                    app:srcCompat="@drawable/ic_share"
+                    app:tint="?attr/colorOnSurfaceVariant" />
             </LinearLayout>
 
         </LinearLayout>

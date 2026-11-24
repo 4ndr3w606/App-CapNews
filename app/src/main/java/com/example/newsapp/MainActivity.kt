@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
@@ -29,6 +28,7 @@ import com.example.newsapp.databinding.ActivityMainBinding
 import com.example.newsapp.local.AppDatabase
 import com.example.newsapp.utils.LectorWeb
 import com.example.newsapp.utils.applyScreenInsets
+import com.example.newsapp.utils.mostrarAviso
 import com.example.newsapp.weather.HomeWeather
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.combine
@@ -62,7 +62,7 @@ class MainActivity : AuthenticatedActivity() {
         binding.root.applyScreenInsets()
         setContentView(binding.root)
 
-        binding.tvUserEmail.text = sessionStore.getEmail()
+        onProfileUpdated()
         binding.btnVerFavoritos.setOnClickListener {
             startActivity(Intent(this, FavoritosActivity::class.java))
         }
@@ -84,6 +84,11 @@ class MainActivity : AuthenticatedActivity() {
                 binding.rvNews.scrollToPosition(0)
             }
         }
+    }
+
+    override fun onProfileUpdated() {
+        binding.tvUserName.text = sessionStore.getName() ?: getString(R.string.home_profile_default_name)
+        binding.tvUserEmail.text = sessionStore.getEmail()
     }
 
     private fun configureFeed(accountId: Long): NewsViewModel {
@@ -118,7 +123,7 @@ class MainActivity : AuthenticatedActivity() {
                 lifecycleScope.launch {
                     val saved = favorites.alternarFavorito(article.toFavoritoEntity(accountId, url))
                     val message = if (saved) R.string.home_favorite_added else R.string.home_favorite_removed
-                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+                    binding.root.mostrarAviso(message)
                 }
             },
             onDownloadClick = offlineNews::download

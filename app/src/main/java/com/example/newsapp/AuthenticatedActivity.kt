@@ -86,6 +86,8 @@ abstract class AuthenticatedActivity : AppCompatActivity() {
                 (user != null && user.id != session.userId)
             ) {
                 invalidateSession(session)
+            } else if (response.isSuccessful && user != null && sessionStore.updateName(session, user.name)) {
+                onProfileUpdated()
             }
         } catch (cancelled: CancellationException) {
             throw cancelled
@@ -93,6 +95,8 @@ abstract class AuthenticatedActivity : AppCompatActivity() {
             // A failed request leaves the locally validated session usable until it expires.
         }
     }
+
+    protected open fun onProfileUpdated() = Unit
 
     private fun invalidateSession(session: SavedAuthSession) {
         if (sessionStore.getSession()?.token != session.token) return

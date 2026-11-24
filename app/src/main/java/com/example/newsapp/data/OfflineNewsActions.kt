@@ -1,12 +1,13 @@
 package com.example.newsapp.data
 
-import android.widget.Toast
+import android.view.View
 import androidx.lifecycle.lifecycleScope
 import com.example.newsapp.AuthenticatedActivity
 import com.example.newsapp.R
 import com.example.newsapp.data.api.Article
 import com.example.newsapp.local.DownloadedNews
 import com.example.newsapp.local.DownloadedNewsDao
+import com.example.newsapp.utils.mostrarAviso
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -27,10 +28,10 @@ internal class OfflineNewsActions(
         activity.lifecycleScope.launch {
             try {
                 if (dao.find(accountId, url) != null) return@launch
-                toast(R.string.download_started)
+                showNotice(R.string.download_started)
                 val body = withContext(Dispatchers.Default) { ArticleDownloader.download(url) }
                 if (body == null) {
-                    toast(R.string.download_body_unavailable)
+                    showNotice(R.string.download_body_unavailable, error = true)
                     return@launch
                 }
                 val cover = try {
@@ -44,18 +45,18 @@ internal class OfflineNewsActions(
                     accountId, url, title, article.source?.name, article.publishedAt,
                     body, System.currentTimeMillis(), cover
                 ))
-                toast(R.string.download_saved)
+                showNotice(R.string.download_saved)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
-                toast(R.string.download_failed)
+                showNotice(R.string.download_failed, error = true)
             } finally {
                 downloading.remove(url)
             }
         }
     }
 
-    private fun toast(message: Int) {
-        Toast.makeText(activity, message, Toast.LENGTH_SHORT).show()
+    private fun showNotice(message: Int, error: Boolean = false) {
+        activity.findViewById<View>(android.R.id.content).mostrarAviso(message, error = error)
     }
 }

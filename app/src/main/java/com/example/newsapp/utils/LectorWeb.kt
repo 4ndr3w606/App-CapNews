@@ -1,19 +1,20 @@
 package com.example.newsapp.utils
 
-import android.content.Context
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import android.widget.Toast
+import android.view.View
 import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.content.ContextCompat
+import com.example.newsapp.R
 
 object LectorWeb {
 
-    fun abrirNoticia(context: Context, url: String?) {
+    fun abrirNoticia(context: Activity, url: String?) {
 
         if (url.isNullOrEmpty()) {
-            Toast.makeText(context, "URL de noticia no disponible", Toast.LENGTH_SHORT).show()
+            context.findViewById<View>(android.R.id.content).mostrarAviso(R.string.news_link_unavailable, error = true)
             return
         }
 

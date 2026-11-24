@@ -17,7 +17,7 @@ class AuthSessionStore(context: Context) {
         Context.MODE_PRIVATE
     )
 
-    fun save(token: String, userId: Long, email: String, expiresAt: Long) {
+    fun save(token: String, userId: Long, email: String, expiresAt: Long, name: String?) {
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
         val encryptedToken = cipher.doFinal(token.toByteArray(StandardCharsets.UTF_8))
@@ -28,6 +28,7 @@ class AuthSessionStore(context: Context) {
             .putLong(KEY_USER_ID, userId)
             .putLong(KEY_EXPIRES_AT, expiresAt)
             .putString(KEY_EMAIL, email)
+            .putString(KEY_NAME, name?.trim()?.takeIf { it.isNotEmpty() })
             .apply()
     }
 
@@ -53,6 +54,14 @@ class AuthSessionStore(context: Context) {
     }
 
     fun getEmail(): String = preferences.getString(KEY_EMAIL, "") ?: ""
+
+    fun getName(): String? = preferences.getString(KEY_NAME, null)
+
+    internal fun updateName(session: SavedAuthSession, name: String?): Boolean {
+        if (getSession() != session) return false
+        preferences.edit().putString(KEY_NAME, name?.trim()?.takeIf { it.isNotEmpty() }).apply()
+        return true
+    }
 
     internal fun getSession(): SavedAuthSession? = getToken()?.let { token ->
         SavedAuthSession(
@@ -92,6 +101,7 @@ class AuthSessionStore(context: Context) {
         const val KEY_USER_ID = "user_id"
         const val KEY_EXPIRES_AT = "expires_at"
         const val KEY_EMAIL = "email"
+        const val KEY_NAME = "name"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
         const val TAG_LENGTH_BITS = 128
     }

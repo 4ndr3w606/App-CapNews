@@ -15,6 +15,7 @@ const databasePath = path.resolve(
 );
 const scrypt = promisify(crypto.scrypt);
 const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+const REGISTRATION_TERMS_VERSION = 1;
 const SCRYPT_OPTIONS = { N: 32_768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
 const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS || 0);
@@ -43,8 +44,15 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS sessions_user_id_idx ON sessions(user_id);
   CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions(expires_at);
 `);
-if (!db.pragma("table_info(users)").some((column) => column.name === "name")) {
+const userColumns = new Set(db.pragma("table_info(users)").map((column) => column.name));
+if (!userColumns.has("name")) {
   db.exec("ALTER TABLE users ADD COLUMN name TEXT");
+}
+if (!userColumns.has("terms_version")) {
+  db.exec("ALTER TABLE users ADD COLUMN terms_version INTEGER");
+}
+if (!userColumns.has("terms_accepted_at")) {
+  db.exec("ALTER TABLE users ADD COLUMN terms_accepted_at INTEGER");
 }
 
 app.disable("x-powered-by");
@@ -140,6 +148,10 @@ app.post("/api/auth/register", authLimiter, async (request, response, next) => {
   const rawName = request.body?.name;
   const name = typeof rawName === "string" ? rawName.trim() : null;
 
+  if (request.body?.termsVersion !== REGISTRATION_TERMS_VERSION) {
+    return sendError(response, 400, "TERMS_REQUIRED", "Acepta la versión vigente de los términos y condiciones.");
+  }
+
   if (!name || name.length > 120) {
     return sendError(response, 400, "INVALID_NAME", "Ingresa un nombre de hasta 120 caracteres.");
   }
@@ -151,8 +163,11 @@ app.post("/api/auth/register", authLimiter, async (request, response, next) => {
   try {
     const passwordHash = await hashPassword(password);
     const registration = db.transaction(() => {
-      const result = db.prepare("INSERT INTO users (email, name, password_hash, created_at) VALUES (?, ?, ?, ?)")
-        .run(email, name, passwordHash, Date.now());
+      const now = Date.now();
+      const result = db.prepare(`
+        INSERT INTO users (email, name, password_hash, created_at, terms_version, terms_accepted_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(email, name, passwordHash, now, REGISTRATION_TERMS_VERSION, now);
       const user = { id: Number(result.lastInsertRowid), email, name };
       return { user, ...createSession(user.id) };
     })();

@@ -75,4 +75,27 @@
     <string name="download_delete">Eliminar</string>
     <string name="download_missing">Esta descarga ya no está disponible.</string>
     <string name="download_reader_title">Lectura sin conexión</string>
+    <string name="news_share">Compartir noticia</string>
+    <string name="news_share_unavailable">No se pudo abrir el menú para compartir.</string>
+    <string name="registration_terms_switch">Leer y aceptar los términos y condiciones</string>
+    <string name="registration_terms_title">Términos y condiciones</string>
+    <string name="registration_terms_accept">Aceptar</string>
+    <string name="registration_confirm_email">Confirmar correo electrónico</string>
+    <string name="registration_confirm_email_required">Vuelve a escribir tu correo electrónico.</string>
+    <string name="registration_email_mismatch">Los correos electrónicos no coinciden.</string>
+    <string name="registration_success_sign_in">Cuenta creada. Inicia sesión con tu contraseña.</string>
+    <string name="registration_terms_body">Desplázate hasta el final para habilitar Aceptar.\n\n
+        <b>Uso de CapNews</b>\n
+        CapNews reúne noticias de distintos medios. Los artículos pertenecen a sus respectivos autores o medios y puedes consultar la publicación original desde su enlace. Para obtener titulares y resultados de búsqueda, el servidor consulta GNews.\n\n
+        <b>Descargas y almacenamiento</b>\n
+        Cuando descargas una noticia, la app contacta al sitio del medio para obtener el texto y la portada si está disponible. Guarda la descarga en el almacenamiento interno de CapNews, asociada a tu cuenta en ese dispositivo, para que puedas leerla sin conexión. Android permite este guardado sin un permiso de acceso a tus archivos. Puedes borrar las noticias desde Descargas.\n\n
+        <b>Ubicación aproximada</b>\n
+        Si eliges usar tu ubicación, Android te pide permiso para obtener la ubicación aproximada. Se utiliza para el clima y las noticias de tu zona. CapNews envía coordenadas aproximadas a Open-Meteo para consultar el clima y usa el nombre de la ciudad o región para buscar noticias. También puedes elegir la ciudad manualmente y cambiar el permiso en los ajustes de Android.\n\n
+        <b>Datos de tu cuenta</b>\n
+        El servidor usa tu nombre y correo para identificar tu cuenta y guarda un hash de la contraseña para verificar el acceso. La app guarda en el dispositivo los datos de sesión necesarios para mantener el acceso, incluso sin conexión mientras la sesión esté vigente. El servidor registra la versión de los términos aceptados y la fecha de aceptación.\n\n
+        Al pulsar Aceptar confirmas que aceptas estos términos, versión 1.</string>
+    <string name="news_link_unavailable">El enlace de esta noticia no está disponible.</string>
+    <string name="download_remove_message">Se borrará la copia sin conexión de «%1$s».</string>
+    <string name="download_removed">Descarga eliminada.</string>
+    <string name="home_profile_default_name">Mi cuenta</string>
 </resources>
