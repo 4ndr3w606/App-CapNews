@@ -22,39 +22,40 @@
             android:layout_weight="1"
             android:text="@string/home_title"
             android:textAppearance="?attr/textAppearanceHeadlineSmall"
-            android:textColor="?attr/colorOnSurface"
+            android:textColor="#3F51B5"
             android:textStyle="bold" />
 
         <ImageButton
             android:id="@+id/btnVerFavoritos"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/bg_boton_inicio"
             android:contentDescription="@string/favorites_title"
             android:scaleType="center"
-            app:srcCompat="@drawable/ic_news_star_outline"
-            app:tint="?attr/colorPrimary" />
+            app:srcCompat="@drawable/ic_home_favorite"
+            app:tint="#3F51B5" />
 
         <ImageButton
             android:id="@+id/btnDownloads"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_marginRight="10dp"
+            android:background="@drawable/bg_boton_inicio"
             android:contentDescription="@string/downloads_title"
             android:scaleType="center"
-            app:srcCompat="@drawable/ic_download"
-            app:tint="?attr/colorPrimary" />
+            app:srcCompat="@drawable/ic_home_download"
+            app:tint="#3F51B5" />
 
         <ImageButton
             android:id="@+id/btn_logout"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:background="@drawable/bg_boton_inicio"
             android:contentDescription="@string/home_logout"
-            android:padding="12dp"
-            android:scaleType="fitCenter"
-            app:srcCompat="@drawable/salida"
-            app:tint="?attr/colorOnSurfaceVariant" />
+            android:scaleType="center"
+            app:srcCompat="@drawable/ic_home_logout"
+            app:tint="#3F51B5" />
 
     </LinearLayout>
 
@@ -70,6 +71,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#87C7F8"
             android:orientation="vertical"
             android:paddingHorizontal="16dp"
             android:paddingVertical="10dp">
@@ -81,7 +83,7 @@
                 android:ellipsize="end"
                 android:maxLines="2"
                 android:textAppearance="?attr/textAppearanceTitleMedium"
-                android:textColor="?attr/colorOnSurface" />
+                android:textColor="@color/black" />
 
             <TextView
                 android:id="@+id/tvUserEmail"
@@ -91,7 +93,8 @@
                 android:ellipsize="end"
                 android:maxLines="2"
                 android:textAppearance="?attr/textAppearanceBodySmall"
-                android:textColor="?attr/colorOnSurfaceVariant" />
+                android:textColor="@color/black"
+                android:textSize="14sp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
@@ -105,14 +108,18 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <Spinner
+        <androidx.appcompat.widget.AppCompatSpinner
             android:id="@+id/spinner_categories"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_news_filter"
             android:contentDescription="@string/home_news_category"
+            android:dropDownWidth="wrap_content"
             android:minHeight="48dp"
             android:spinnerMode="dropdown" />
 
@@ -120,7 +127,13 @@
             android:id="@+id/svBuscador"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:layout_weight="1"
+            android:background="@drawable/bg_news_filter"
+            android:minHeight="48dp"
+            android:theme="@style/ThemeOverlay.NewsApp.NewsSearch"
+            app:iconifiedByDefault="false"
+            app:queryBackground="@null"
             app:queryHint="@string/home_news_search" />
 
     </LinearLayout>

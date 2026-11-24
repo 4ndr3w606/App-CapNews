@@ -39,6 +39,7 @@
                 android:layout_marginBottom="24dp"
                 android:text="Iniciar sesión"
                 android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                android:textColor="#3F51B5"
                 android:textStyle="bold" />
 
             <com.google.android.material.textfield.TextInputLayout
@@ -137,7 +138,9 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="8dp"
                 android:accessibilityLiveRegion="polite"
-                android:textColor="@android:color/holo_red_dark"
+                android:background="@drawable/bg_news_error"
+                android:padding="12dp"
+                android:textColor="@color/news_notice_error_text"
                 android:visibility="gone" />
 
             <com.google.android.material.progressindicator.CircularProgressIndicator
@@ -152,6 +155,7 @@
                 android:id="@+id/btn_login"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                app:backgroundTint="@color/auth_action_background"
                 android:text="Ingresar" />
 
             <TextView
@@ -161,7 +165,7 @@
                 android:layout_marginTop="16dp"
                 android:padding="8dp"
                 android:text="¿No tienes cuenta? Regístrate"
-                android:textColor="?attr/colorPrimary"
+                android:textColor="#2196F3"
                 android:textStyle="bold" />
 
         </LinearLayout>

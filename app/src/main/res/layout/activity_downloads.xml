@@ -8,10 +8,11 @@
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/downloadsToolbar"
+        style="@style/Widget.NewsApp.SectionToolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:navigationContentDescription="@string/downloads_back"
-        app:navigationIcon="?attr/homeAsUpIndicator"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         app:title="@string/downloads_title" />
 
     <TextView

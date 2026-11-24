@@ -28,8 +28,9 @@ class FavoritosActivity : AuthenticatedActivity() {
         binding.root.applyScreenInsets()
         setContentView(binding.root)
 
-        supportActionBar?.title = "Noticias Favoritas"
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        binding.favoritesToolbar.setNavigationOnClickListener {
+            onBackPressedDispatcher.onBackPressed()
+        }
 
         val database = AppDatabase.getDatabase(this)
         val favoritoDao = database.favoritoDao()
@@ -69,10 +70,5 @@ class FavoritosActivity : AuthenticatedActivity() {
                 }
             }
         }
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        onBackPressedDispatcher.onBackPressed()
-        return true
     }
 }

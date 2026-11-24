@@ -10,6 +10,29 @@
         <item name="snackbarStyle">@style/Widget.NewsApp.Snackbar</item>
     </style>
 
+    <style name="ThemeOverlay.NewsApp.NewsSearch" parent="">
+        <item name="android:textColorPrimary">@color/news_control_text</item>
+        <item name="android:textColorHint">@color/news_control_text</item>
+        <item name="colorControlNormal">@color/news_control_text</item>
+    </style>
+
+    <style name="Widget.NewsApp.SectionToolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
+        <item name="android:background">@drawable/bg_section_toolbar</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="contentInsetStartWithNavigation">64dp</item>
+        <item name="navigationContentDescription">@string/navigation_back</item>
+        <item name="navigationIcon">?attr/homeAsUpIndicator</item>
+        <item name="navigationIconTint">@color/news_control_text</item>
+        <item name="titleTextAppearance">@style/TextAppearance.NewsApp.SectionToolbar</item>
+        <item name="titleTextColor">@color/news_control_text</item>
+    </style>
+
+    <style name="TextAppearance.NewsApp.SectionToolbar" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textStyle">bold</item>
+    </style>
+
     <style name="ThemeOverlay.NewsApp.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="alertDialogStyle">@style/MaterialAlertDialog.NewsApp</item>
     </style>
@@ -17,6 +40,18 @@
     <style name="MaterialAlertDialog.NewsApp" parent="MaterialAlertDialog.Material3">
         <item name="backgroundTint">?attr/colorSurfaceContainerHigh</item>
         <item name="shapeAppearance">@style/ShapeAppearance.NewsApp.Dialog</item>
+    </style>
+
+    <style name="ThemeOverlay.NewsApp.RegistrationTerms" parent="ThemeOverlay.NewsApp.Dialog">
+        <item name="alertDialogStyle">@style/MaterialAlertDialog.NewsApp.RegistrationTerms</item>
+        <item name="colorOnSurface">@color/news_control_text</item>
+        <item name="colorPrimary">@color/news_terms_action</item>
+        <item name="colorOnPrimary">@color/news_on_terms_action</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Material3.Button</item>
+    </style>
+
+    <style name="MaterialAlertDialog.NewsApp.RegistrationTerms" parent="MaterialAlertDialog.NewsApp">
+        <item name="backgroundTint">@color/news_terms_surface</item>
     </style>
 
     <style name="ShapeAppearance.NewsApp.Dialog" parent="">

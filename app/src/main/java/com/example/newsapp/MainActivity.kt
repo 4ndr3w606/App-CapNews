@@ -152,7 +152,6 @@ class MainActivity : AuthenticatedActivity() {
         binding.svBuscador.isVisible = viewModel.category != NEARBY_CATEGORY
         binding.svBuscador.isSaveFromParentEnabled = false
         if (viewModel.query.isNotEmpty()) {
-            binding.svBuscador.setIconified(false)
             binding.svBuscador.setQuery(viewModel.query, false)
             binding.svBuscador.clearFocus()
         }
@@ -169,7 +168,7 @@ class MainActivity : AuthenticatedActivity() {
             }
         })
         val adapter = ArrayAdapter(
-            this, android.R.layout.simple_spinner_item, categories.map { getString(it.second) }
+            this, R.layout.item_category_selected, categories.map { getString(it.second) }
         )
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         binding.spinnerCategories.isSaveFromParentEnabled = false

@@ -2,10 +2,12 @@ package com.example.newsapp
 
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Patterns
+import android.view.LayoutInflater
 import android.widget.ScrollView
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,6 +31,7 @@ class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
     private lateinit var sessionStore: AuthSessionStore
+    private lateinit var signInButtonTextColors: ColorStateList
     private var registrationMode = false
     private var termsAccepted = false
     private var busy = false
@@ -46,6 +49,7 @@ class LoginActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         binding = ActivityLoginBinding.inflate(layoutInflater)
+        signInButtonTextColors = binding.btnLogin.textColors
         binding.root.applyScreenInsets()
         setContentView(binding.root)
         sessionStore = AuthSessionStore(this)
@@ -73,9 +77,10 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun showTerms() {
-        val content = layoutInflater.inflate(R.layout.dialog_registration_terms, null)
+        val builder = MaterialAlertDialogBuilder(this, R.style.ThemeOverlay_NewsApp_RegistrationTerms)
+        val content = LayoutInflater.from(builder.context).inflate(R.layout.dialog_registration_terms, null)
         val scroll = content.findViewById<ScrollView>(R.id.terms_scroll)
-        val dialog = MaterialAlertDialogBuilder(this)
+        val dialog = builder
             .setTitle(R.string.registration_terms_title)
             .setView(content)
             .setNegativeButton(android.R.string.cancel, null)
@@ -235,6 +240,10 @@ class LoginActivity : AppCompatActivity() {
         binding.tilUsername.visibility = if (enabled) android.view.View.VISIBLE else android.view.View.GONE
         binding.tvAuthTitle.text = if (enabled) "Crear cuenta" else "Iniciar sesión"
         binding.btnLogin.text = if (enabled) "Registrarme" else "Ingresar"
+        binding.btnLogin.isActivated = enabled
+        binding.btnLogin.setTextColor(
+            if (enabled) ColorStateList.valueOf(getColor(R.color.white)) else signInButtonTextColors
+        )
         binding.btnToggleAuth.text = if (enabled) {
             "¿Ya tienes cuenta? Inicia sesión"
         } else {

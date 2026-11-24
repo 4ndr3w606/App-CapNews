@@ -62,9 +62,7 @@ class DownloadsActivity : AuthenticatedActivity() {
                             CompartirNoticia.abrirMenu(binding.root, saved.title, saved.url)
                             true
                         }
-                    val iconColor = MaterialColors.getColor(
-                        binding.downloadsToolbar, com.google.android.material.R.attr.colorOnSurface
-                    )
+                    val iconColor = getColor(R.color.news_control_text)
                     MenuItemCompat.setIconTintList(shareItem, ColorStateList.valueOf(iconColor))
                     shareItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
                 }

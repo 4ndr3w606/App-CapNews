@@ -64,7 +64,7 @@
     <string name="news_local_unavailable">No pudimos cargar las noticias y todavía no hay noticias guardadas de esta zona.</string>
     <string name="news_local_view_area">Ver noticias de %1$s</string>
     <string name="downloads_title">Descargas</string>
-    <string name="downloads_back">Volver</string>
+    <string name="navigation_back">Volver</string>
     <string name="downloads_empty">Toca el icono de descarga en una noticia para leerla sin conexión.</string>
     <string name="download_article">Descargar noticia</string>
     <string name="download_started">Descargando noticia…</string>
@@ -84,7 +84,8 @@
     <string name="registration_confirm_email_required">Vuelve a escribir tu correo electrónico.</string>
     <string name="registration_email_mismatch">Los correos electrónicos no coinciden.</string>
     <string name="registration_success_sign_in">Cuenta creada. Inicia sesión con tu contraseña.</string>
-    <string name="registration_terms_body">Desplázate hasta el final para habilitar Aceptar.\n\n
+    <string name="registration_terms_scroll_hint">Desplázate hasta el final para habilitar Aceptar.</string>
+    <string name="registration_terms_body">
         <b>Uso de CapNews</b>\n
         CapNews reúne noticias de distintos medios. Los artículos pertenecen a sus respectivos autores o medios y puedes consultar la publicación original desde su enlace. Para obtener titulares y resultados de búsqueda, el servidor consulta GNews.\n\n
         <b>Descargas y almacenamiento</b>\n

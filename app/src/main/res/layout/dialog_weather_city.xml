@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="#FAF9F9"
     android:orientation="vertical"
     android:paddingHorizontal="24dp"
     android:paddingTop="16dp">
@@ -17,7 +18,13 @@
             android:id="@+id/city_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="#3F51B5"
+            android:drawableTint="#3F51B5"
+            android:foregroundTint="#3F51B5"
             android:inputType="textCapWords"
-            android:singleLine="true" />
+            android:shadowColor="#3F51B5"
+            android:singleLine="true"
+            android:textColor="#3F51B5"
+            android:textColorLink="#3F51B5" />
     </com.google.android.material.textfield.TextInputLayout>
 </LinearLayout>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="news_control_surface">#192A43</color>
+    <color name="news_control_outline">#627FA5</color>
+    <color name="news_control_text">#D7E8FF</color>
+    <color name="news_section_toolbar">#233956</color>
+    <color name="news_terms_surface">#132138</color>
+    <color name="news_terms_action">#A9CDFF</color>
+    <color name="news_on_terms_action">#102B4D</color>
+    <color name="news_notice_error_surface">#4B292B</color>
+    <color name="news_notice_error_text">#FFDAD4</color>
+</resources>

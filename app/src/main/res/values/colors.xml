@@ -2,4 +2,13 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="news_control_surface">#EDF5FF</color>
+    <color name="news_control_outline">#91ACD0</color>
+    <color name="news_control_text">#193B67</color>
+    <color name="news_section_toolbar">#DCEBFF</color>
+    <color name="news_terms_surface">#F8FBFF</color>
+    <color name="news_terms_action">#235A9D</color>
+    <color name="news_on_terms_action">#FFFFFF</color>
+    <color name="news_notice_error_surface">#FCE8E3</color>
+    <color name="news_notice_error_text">#792D27</color>
 </resources>
