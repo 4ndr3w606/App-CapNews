@@ -1,25 +1,17 @@
 package com.example.newsapp
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.ColorStateList
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.util.Patterns
 import android.view.LayoutInflater
 import android.widget.ScrollView
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.doOnLayout
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
-import com.example.newsapp.data.AuthSessionStore
-import com.example.newsapp.data.SavedAuthSession
-import com.example.newsapp.data.api.AuthApiClient
-import com.example.newsapp.data.api.AuthCredentials
-import com.example.newsapp.data.api.AuthUser
+import com.example.newsapp.data.LocalAuth
 import com.example.newsapp.databinding.ActivityLoginBinding
 import com.example.newsapp.utils.applyScreenInsets
 import com.example.newsapp.utils.mostrarAviso
@@ -30,21 +22,11 @@ import kotlinx.coroutines.launch
 class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
-    private lateinit var sessionStore: AuthSessionStore
+    private lateinit var auth: LocalAuth
     private lateinit var signInButtonTextColors: ColorStateList
     private var registrationMode = false
     private var termsAccepted = false
     private var busy = false
-    private val localNetworkPermission = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        if (granted) {
-            submitCredentials()
-        } else {
-            showError("Permite el acceso a la red local en los ajustes de CapNews para conectarte al servidor de desarrollo.")
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -52,7 +34,7 @@ class LoginActivity : AppCompatActivity() {
         signInButtonTextColors = binding.btnLogin.textColors
         binding.root.applyScreenInsets()
         setContentView(binding.root)
-        sessionStore = AuthSessionStore(this)
+        auth = LocalAuth(this)
 
         binding.btnLogin.setOnClickListener { submitCredentials() }
         binding.btnToggleAuth.setOnClickListener { setRegistrationMode(!registrationMode) }
@@ -63,9 +45,6 @@ class LoginActivity : AppCompatActivity() {
             termsAccepted = false
             updateTermsControls()
             if (checked) showTerms()
-        }
-        if (intent.getBooleanExtra(EXTRA_SESSION_EXPIRED, false)) {
-            showError(getString(R.string.session_expired))
         }
         restoreSessionIfPresent()
     }
@@ -104,39 +83,16 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun restoreSessionIfPresent() {
-        val session = sessionStore.getSession() ?: return
-        val now = System.currentTimeMillis()
-        if (session.isValidAt(now)) {
-            openMain()
-            return
-        }
-        if (session.hasExpired(now)) {
-            sessionStore.clear()
-            showError(getString(R.string.session_expired))
-            return
-        }
-        if (needsLocalNetworkPermission()) return
         setBusy(true)
         lifecycleScope.launch {
             try {
-                val response = AuthApiClient.service.currentUser("Bearer ${session.token}")
-                if (response.isSuccessful) {
-                    val authenticated = response.body()
-                    openAuthenticatedSession(
-                        session.token,
-                        authenticated?.user,
-                        authenticated?.expiresAt ?: 0
-                    )
-                } else {
-                    if (response.code() == 401) sessionStore.clear()
-                    setBusy(false)
-                    showError("No se pudo validar la sesión. Inicia sesión de nuevo.")
-                }
+                if (auth.current() != null) openMain()
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
+                showError(getString(R.string.local_auth_error))
+            } finally {
                 setBusy(false)
-                showError("No se pudo conectar con el servidor para validar la sesión.")
             }
         }
     }
@@ -179,41 +135,27 @@ class LoginActivity : AppCompatActivity() {
             return
         }
 
-        if (needsLocalNetworkPermission()) {
-            localNetworkPermission.launch(ACCESS_LOCAL_NETWORK)
-            return
-        }
-
         val registering = registrationMode
         setBusy(true)
         lifecycleScope.launch {
             try {
-                val credentials = AuthCredentials(email, password)
-                val response = if (registering) {
-                    AuthApiClient.service.register(credentials.copy(name = name, termsVersion = TERMS_VERSION))
-                } else {
-                    AuthApiClient.service.login(credentials)
-                }
-
-                if (response.isSuccessful && registering) {
-                    showLoginAfterRegistration(email)
-                } else if (response.isSuccessful) {
-                    val session = response.body()
-                    if (session == null) {
-                        setBusy(false)
-                        showError("El servidor devolvió una respuesta incompleta.")
-                        return@launch
+                if (registering) {
+                    if (auth.register(name, email, password, TERMS_VERSION)) {
+                        showLoginAfterRegistration(email)
+                    } else {
+                        showError(getString(R.string.local_auth_duplicate))
                     }
-                    openAuthenticatedSession(session.token, session.user, session.expiresAt)
+                } else if (auth.login(email, password)) {
+                    openMain()
                 } else {
-                    setBusy(false)
-                    showError(messageForStatus(response.code()))
+                    showError(getString(R.string.local_auth_invalid_credentials))
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
+                showError(getString(R.string.local_auth_error))
+            } finally {
                 setBusy(false)
-                showError("No se pudo conectar con el servidor. Intenta de nuevo.")
             }
         }
     }
@@ -227,11 +169,6 @@ class LoginActivity : AppCompatActivity() {
         binding.etPassword.requestFocus()
         binding.root.mostrarAviso(R.string.registration_success_sign_in, long = true)
     }
-
-    private fun needsLocalNetworkPermission(): Boolean =
-        BuildConfig.DEBUG && Build.VERSION.SDK_INT >= 37 &&
-            Uri.parse(BuildConfig.AUTH_API_BASE_URL).scheme.equals("http", ignoreCase = true) &&
-            checkSelfPermission(ACCESS_LOCAL_NETWORK) != PackageManager.PERMISSION_GRANTED
 
     private fun setRegistrationMode(enabled: Boolean) {
         registrationMode = enabled
@@ -288,35 +225,15 @@ class LoginActivity : AppCompatActivity() {
         binding.tvAuthError.visibility = android.view.View.VISIBLE
     }
 
-    private fun messageForStatus(statusCode: Int): String = when (statusCode) {
-        400, 409 -> "No se pudo completar la operación. Revisa los datos o prueba iniciar sesión."
-        401 -> "Correo o contraseña incorrectos."
-        429 -> "Demasiados intentos. Espera unos minutos y vuelve a probar."
-        else -> "El servidor no pudo completar la operación. Intenta más tarde."
-    }
-
-    private fun openAuthenticatedSession(token: String, user: AuthUser?, expiresAt: Long) {
-        if (user == null || !SavedAuthSession(token, user.id, expiresAt).isValidAt(System.currentTimeMillis())) {
-            setBusy(false)
-            showError("El servidor devolvió una respuesta incompleta.")
-            return
-        }
-
-        sessionStore.save(token, user.id, user.email, expiresAt, user.name)
-        openMain()
-    }
-
     private fun openMain() {
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
 
     companion object {
-        internal const val EXTRA_SESSION_EXPIRED = "session_expired"
-        private const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
         private const val MIN_PASSWORD_LENGTH = 8
         private const val MAX_PASSWORD_LENGTH = 128
-        private const val TERMS_VERSION = 1
+        private const val TERMS_VERSION = 2
         private const val STATE_REGISTRATION = "registration_mode"
         private const val STATE_TERMS_ACCEPTED = "terms_accepted"
     }

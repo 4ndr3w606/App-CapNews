@@ -54,6 +54,22 @@
         <item name="backgroundTint">@color/news_terms_surface</item>
     </style>
 
+    <style name="ThemeOverlay.NewsApp.Headlines" parent="ThemeOverlay.NewsApp.Dialog">
+        <item name="alertDialogStyle">@style/MaterialAlertDialog.NewsApp.RegistrationTerms</item>
+        <item name="colorPrimary">@color/news_terms_action</item>
+        <item name="colorOnPrimary">@color/news_on_terms_action</item>
+        <item name="colorSecondaryContainer">@color/news_section_toolbar</item>
+        <item name="colorOnSecondaryContainer">@color/news_control_text</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Material3.Button</item>
+    </style>
+
+    <style name="ThemeOverlay.NewsApp.HeadlinesTimePicker" parent="ThemeOverlay.Material3.MaterialTimePicker">
+        <item name="colorPrimary">@color/news_terms_action</item>
+        <item name="colorOnPrimary">@color/news_on_terms_action</item>
+        <item name="colorSecondaryContainer">@color/news_section_toolbar</item>
+        <item name="colorOnSecondaryContainer">@color/news_control_text</item>
+    </style>
+
     <style name="ShapeAppearance.NewsApp.Dialog" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">28dp</item>

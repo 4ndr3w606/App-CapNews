@@ -10,7 +10,12 @@ const { rateLimit } = require("express-rate-limit");
 
 const app = express();
 const port = Number(process.env.PORT || 3000);
-const databasePath = path.resolve(
+const newsOnly = process.env.NEWS_ONLY === "true";
+const gnewsApiKey = process.env.GNEWS_API_KEY?.trim();
+if (newsOnly && !gnewsApiKey) {
+  throw new Error("Configura GNEWS_API_KEY para iniciar el servicio de noticias.");
+}
+const databasePath = newsOnly ? ":memory:" : path.resolve(
   process.env.AUTH_DB_PATH || path.join(__dirname, "data", "capnews.sqlite")
 );
 const scrypt = promisify(crypto.scrypt);
@@ -24,7 +29,7 @@ if (!Number.isInteger(trustProxyHops) || trustProxyHops < 0) {
 }
 if (trustProxyHops > 0) app.set("trust proxy", trustProxyHops);
 
-fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+if (!newsOnly) fs.mkdirSync(path.dirname(databasePath), { recursive: true });
 const db = new Database(databasePath);
 db.pragma("journal_mode = WAL");
 db.pragma("foreign_keys = ON");
@@ -103,7 +108,7 @@ async function verifyPassword(password, storedHash) {
   return crypto.timingSafeEqual(actual, expected);
 }
 
-const dummyPasswordHash = hashPassword(crypto.randomBytes(32).toString("hex"));
+const dummyPasswordHash = newsOnly ? null : hashPassword(crypto.randomBytes(32).toString("hex"));
 
 function tokenDigest(token) {
   return crypto.createHash("sha256").update(token).digest("hex");
@@ -141,6 +146,10 @@ function requireSession(request, response, next) {
 }
 
 app.get("/health", (_request, response) => response.json({ status: "ok" }));
+if (newsOnly) {
+  app.use(["/api/auth", "/api/news"], (_request, response) =>
+    sendError(response, 404, "NOT_FOUND", "Ruta no disponible."));
+}
 
 app.post("/api/auth/register", authLimiter, async (request, response, next) => {
   const email = normalizeEmail(request.body?.email);
@@ -225,13 +234,24 @@ const newsLimiter = rateLimit({
   message: { error: { code: "RATE_LIMITED", message: "Espera un momento para consultar noticias." } },
 });
 
-app.get("/api/news/:endpoint", requireSession, newsLimiter, async (request, response) => {
+const publicNewsLimiter = rateLimit({ windowMs: 60 * 1000, limit: 30 });
+const publicNewsBudget = rateLimit({
+  windowMs: 24 * 60 * 60 * 1000,
+  limit: Number(process.env.PUBLIC_NEWS_DAILY_LIMIT ?? 100),
+  keyGenerator: () => "public-news",
+});
+
+app.get("/api/news/:endpoint", requireSession, newsLimiter, serveNews);
+if (newsOnly || process.env.PUBLIC_NEWS_ENABLED === "true") {
+  app.get("/api/public/news/:endpoint", publicNewsLimiter, publicNewsBudget, serveNews);
+}
+
+async function serveNews(request, response) {
   const endpoint = request.params.endpoint;
   if (!["search", "top-headlines"].includes(endpoint)) {
     return sendError(response, 404, "NOT_FOUND", "Consulta no disponible.");
   }
-  const apiKey = process.env.GNEWS_API_KEY?.trim();
-  if (!apiKey) return sendError(response, 503, "NEWS_NOT_CONFIGURED", "El servicio de noticias está pendiente de configuración.");
+  if (!gnewsApiKey) return sendError(response, 503, "NEWS_NOT_CONFIGURED", "El servicio de noticias está pendiente de configuración.");
 
   const url = new URL(endpoint, "https://gnews.io/api/v4/");
   const allowed = endpoint === "search"
@@ -250,7 +270,7 @@ app.get("/api/news/:endpoint", requireSession, newsLimiter, async (request, resp
   if (endpoint === "search") url.searchParams.set("in", "title,description,content");
   try {
     const upstream = await fetch(url, {
-      headers: { "X-Api-Key": apiKey },
+      headers: { "X-Api-Key": gnewsApiKey },
       signal: AbortSignal.timeout(10_000),
     });
     if (!upstream.ok) {
@@ -263,7 +283,7 @@ app.get("/api/news/:endpoint", requireSession, newsLimiter, async (request, resp
   } catch {
     return sendError(response, 502, "NEWS_UNAVAILABLE", "No se pudo consultar el proveedor de noticias.");
   }
-});
+}
 
 app.use((error, _request, response, _next) => {
   if (error.type === "entity.parse.failed" || error.type === "entity.too.large") {
@@ -274,7 +294,7 @@ app.use((error, _request, response, _next) => {
 });
 
 const server = app.listen(port, "0.0.0.0", () => {
-  console.log(`API de autenticación escuchando en el puerto ${port}.`);
+  console.log(`API de CapNews escuchando en el puerto ${port}.`);
 });
 
 function shutdown() {

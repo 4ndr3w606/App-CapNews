@@ -3,11 +3,11 @@ package com.example.newsapp
 import android.content.Intent
 import android.content.DialogInterface
 import android.content.res.ColorStateList
-import android.os.Bundle
 import android.view.MenuItem
 import androidx.core.view.MenuItemCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
+import com.example.newsapp.data.LocalProfile
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
@@ -25,9 +25,8 @@ import com.google.android.material.color.MaterialColors
 import kotlinx.coroutines.launch
 
 class DownloadsActivity : AuthenticatedActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val accountId = activeSession?.userId ?: return
+    override fun onAccountReady(profile: LocalProfile) {
+        val accountId = profile.userId
         val binding = ActivityDownloadsBinding.inflate(layoutInflater)
         binding.root.applyScreenInsets()
         setContentView(binding.root)

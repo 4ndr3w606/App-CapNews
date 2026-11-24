@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">NewsApp</string>
-    <string name="session_expired">Tu sesión terminó. Inicia sesión de nuevo para acceder a tus noticias y favoritos.</string>
+    <string name="local_auth_duplicate">Ya existe una cuenta con ese correo en este dispositivo.</string>
+    <string name="local_auth_invalid_credentials">Correo o contraseña incorrectos.</string>
+    <string name="local_auth_error">No se pudo acceder a los datos de la cuenta en este dispositivo.</string>
     <string name="cached_news">No se pudieron actualizar los titulares. Mostrando noticias guardadas.</string>
     <string name="no_cached_news">No hay noticias guardadas para esta categoría.</string>
     <string name="news_loading">Cargando noticias</string>
@@ -16,7 +18,7 @@
     <string name="favorites_empty">No tienes favoritos guardados.</string>
     <string name="news_image">Imagen de la noticia</string>
     <string name="home_title">CapNews</string>
-    <string name="home_logout">Cerrar sesión</string>
+    <string name="home_logout">Cambiar de cuenta</string>
     <string name="home_news_category">Categoría de noticias</string>
     <string name="home_news_search">Buscar noticias</string>
     <string name="home_favorite_added">Guardada en favoritos</string>
@@ -93,10 +95,29 @@
         <b>Ubicación aproximada</b>\n
         Si eliges usar tu ubicación, Android te pide permiso para obtener la ubicación aproximada. Se utiliza para el clima y las noticias de tu zona. CapNews envía coordenadas aproximadas a Open-Meteo para consultar el clima y usa el nombre de la ciudad o región para buscar noticias. También puedes elegir la ciudad manualmente y cambiar el permiso en los ajustes de Android.\n\n
         <b>Datos de tu cuenta</b>\n
-        El servidor usa tu nombre y correo para identificar tu cuenta y guarda un hash de la contraseña para verificar el acceso. La app guarda en el dispositivo los datos de sesión necesarios para mantener el acceso, incluso sin conexión mientras la sesión esté vigente. El servidor registra la versión de los términos aceptados y la fecha de aceptación.\n\n
-        Al pulsar Aceptar confirmas que aceptas estos términos, versión 1.</string>
+        CapNews guarda tu nombre, correo, favoritos y descargas en este dispositivo. La app guarda un hash de la contraseña para verificar tu acceso y registra la versión y la fecha de aceptación de los términos. Tu cuenta funciona sin conexión y no se sincroniza con otros dispositivos.\n\n
+        Al pulsar Aceptar confirmas que aceptas estos términos, versión 2.</string>
     <string name="news_link_unavailable">El enlace de esta noticia no está disponible.</string>
     <string name="download_remove_message">Se borrará la copia sin conexión de «%1$s».</string>
     <string name="download_removed">Descarga eliminada.</string>
     <string name="home_profile_default_name">Mi cuenta</string>
+    <string name="headlines_settings">Titulares diarios</string>
+    <string name="headlines_enabled">Resumen diario activado</string>
+    <string name="headlines_disabled">Resumen diario desactivado</string>
+    <string name="headlines_time_label">Hora de entrega</string>
+    <string name="headlines_change_time">Cambiar</string>
+    <string name="headlines_change_time_description">Cambiar hora de entrega. Hora actual: %1$s</string>
+    <string name="headlines_pick_time">Elegir hora de entrega</string>
+    <string name="headlines_categories">Categorías de interés</string>
+    <string name="headlines_activate">Guardar y activar</string>
+    <string name="headlines_save_changes">Guardar</string>
+    <string name="headlines_disable">Desactivar</string>
+    <string name="headlines_saved">Resumen diario guardado.</string>
+    <string name="headlines_turned_off">Resumen diario desactivado.</string>
+    <string name="headlines_permission_title">Permiso de notificaciones</string>
+    <string name="headlines_permission_message">Tu horario está guardado. Para recibir titulares, habilita las notificaciones de CapNews en los ajustes de Android.</string>
+    <string name="headlines_open_settings">Abrir ajustes</string>
+    <string name="headlines_channel">Titulares diarios</string>
+    <string name="headlines_notification_title">Tus titulares de hoy</string>
+    <string name="headlines_line">%1$s: %2$s</string>
 </resources>

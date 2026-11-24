@@ -2,16 +2,21 @@ package com.example.newsapp
 
 import android.Manifest
 import android.content.Intent
-import android.os.Bundle
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.SearchView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.createSavedStateHandle
+import com.example.newsapp.data.LocalProfile
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.initializer
@@ -21,19 +26,21 @@ import com.example.newsapp.adapter.NewsAdapter
 import com.example.newsapp.data.NewsRepository
 import com.example.newsapp.data.OfflineNewsActions
 import com.example.newsapp.data.PreferencesManager
-import com.example.newsapp.data.api.AuthApiClient
 import com.example.newsapp.data.api.InstanciaRetrofit
+import com.example.newsapp.data.headlineCategories
 import com.example.newsapp.data.toFavoritoEntity
 import com.example.newsapp.databinding.ActivityMainBinding
 import com.example.newsapp.local.AppDatabase
+import com.example.newsapp.notifications.HeadlineNotification
+import com.example.newsapp.notifications.HeadlinesSchedule
+import com.example.newsapp.notifications.HeadlinesSettingsDialog
 import com.example.newsapp.utils.LectorWeb
 import com.example.newsapp.utils.applyScreenInsets
 import com.example.newsapp.utils.mostrarAviso
 import com.example.newsapp.weather.HomeWeather
-import kotlinx.coroutines.CancellationException
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
 
 class MainActivity : AuthenticatedActivity() {
 
@@ -44,35 +51,38 @@ class MainActivity : AuthenticatedActivity() {
         if (::homeWeather.isInitialized) homeWeather.onPermissionResult(granted)
     }
 
-    private val categories = listOf(
-        "world" to R.string.category_world,
-        NEARBY_CATEGORY to R.string.category_nearby,
-        "technology" to R.string.category_technology,
-        "sports" to R.string.category_sports,
-        "business" to R.string.category_business,
-        "entertainment" to R.string.category_entertainment,
-        "health" to R.string.category_health,
-        "science" to R.string.category_science
-    )
+    private val notificationsPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
+        if (!::binding.isInitialized) return@registerForActivityResult
+        if (HeadlineNotification.canPost(this)) {
+            binding.root.mostrarAviso(R.string.headlines_saved)
+        } else {
+            showNotificationPermissionSettings()
+        }
+    }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val accountId = activeSession?.userId ?: return
+    private val categories = headlineCategories.toList().toMutableList().apply {
+        add(1, NEARBY_CATEGORY to R.string.category_nearby)
+    }
+
+    override fun onAccountReady(profile: LocalProfile) {
+        val accountId = profile.userId
         binding = ActivityMainBinding.inflate(layoutInflater)
         binding.root.applyScreenInsets()
         setContentView(binding.root)
 
-        onProfileUpdated()
+        binding.tvUserName.text = profile.name
+        binding.tvUserEmail.text = profile.email
         binding.btnVerFavoritos.setOnClickListener {
             startActivity(Intent(this, FavoritosActivity::class.java))
         }
         binding.btnDownloads.setOnClickListener {
             startActivity(Intent(this, DownloadsActivity::class.java))
         }
-        binding.btnLogout.setOnClickListener { logout() }
+        binding.btnLogout.setOnClickListener { switchAccount() }
+        configureHeadlinesSettings(accountId)
 
         val viewModel = configureFeed(accountId)
-        homeWeather = HomeWeather(this, binding.homeWeather, viewModel::updateLocalPlace) {
+        homeWeather = HomeWeather(this, accountId, binding.homeWeather, viewModel::updateLocalPlace) {
             locationPermission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
         homeWeather.start()
@@ -86,9 +96,42 @@ class MainActivity : AuthenticatedActivity() {
         }
     }
 
-    override fun onProfileUpdated() {
-        binding.tvUserName.text = sessionStore.getName() ?: getString(R.string.home_profile_default_name)
-        binding.tvUserEmail.text = sessionStore.getEmail()
+    private fun configureHeadlinesSettings(accountId: Long) {
+        HeadlinesSchedule.ensureScheduled(this, accountId)
+        supportFragmentManager.setFragmentResultListener(HeadlinesSettingsDialog.RESULT_KEY, this) { _, result ->
+            when {
+                !result.getBoolean(HeadlinesSettingsDialog.RESULT_ENABLED) ->
+                    binding.root.mostrarAviso(R.string.headlines_turned_off)
+                HeadlineNotification.canPost(this) ->
+                    binding.root.mostrarAviso(R.string.headlines_saved)
+                Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED ->
+                    notificationsPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                else -> showNotificationPermissionSettings()
+            }
+        }
+        binding.btnHeadlinesSettings.setOnClickListener {
+            if (supportFragmentManager.findFragmentByTag(HeadlinesSettingsDialog.TAG) == null) {
+                HeadlinesSettingsDialog.newInstance(accountId).showNow(supportFragmentManager, HeadlinesSettingsDialog.TAG)
+            }
+        }
+    }
+
+    private fun showNotificationPermissionSettings() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.headlines_permission_title)
+            .setMessage(R.string.headlines_permission_message)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.headlines_open_settings) { _, _ ->
+                val intent = if (Build.VERSION.SDK_INT >= 26) {
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                } else {
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                }
+                startActivity(intent)
+            }
+            .show()
     }
 
     private fun configureFeed(accountId: Long): NewsViewModel {
@@ -96,7 +139,7 @@ class MainActivity : AuthenticatedActivity() {
         val favorites = database.favoritoDao()
         val downloads = database.downloadedNewsDao()
         val offlineNews = OfflineNewsActions(this, accountId, downloads)
-        val preferences = PreferencesManager(this)
+        val preferences = PreferencesManager(this, accountId)
         val initialCategory = preferences.getCategory().takeIf { saved ->
             categories.any { it.first == saved }
         } ?: categories.first().first
@@ -104,7 +147,7 @@ class MainActivity : AuthenticatedActivity() {
             initializer {
                 NewsViewModel(
                     NewsRepository(
-                        InstanciaRetrofit.create { sessionStore.getSession()?.token },
+                        InstanciaRetrofit.create(),
                         database.articleDao(),
                         database.localNewsDao()
                     ),
@@ -223,21 +266,4 @@ class MainActivity : AuthenticatedActivity() {
         binding.btnLocalNewsAction.text = action
     }
 
-    private fun logout() {
-        val token = activeSession?.token ?: return
-        binding.btnLogout.isEnabled = false
-        sessionStore.clear()
-        lifecycleScope.launch {
-            try {
-                withTimeoutOrNull(2_000) {
-                    AuthApiClient.service.logout("Bearer $token")
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (_: Exception) {
-                // La sesión ya se cerró en el dispositivo.
-            }
-            returnToLogin()
-        }
-    }
 }

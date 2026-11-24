@@ -11,9 +11,11 @@ val localProperties = Properties().apply {
         propertiesFile.inputStream().use { load(it) }
     }
 }
-val configuredAuthApiBaseUrl = providers.gradleProperty("authApiBaseUrl").orNull
-    ?: System.getenv("AUTH_API_BASE_URL")
-    ?: localProperties.getProperty("authApiBaseUrl")
+val gnewsApiKey = (providers.environmentVariable("GNEWS_API_KEY").orNull
+    ?: localProperties.getProperty("GNEWS_API_KEY")).orEmpty().trim()
+require(gnewsApiKey.matches(Regex("[0-9a-fA-F]{32}"))) {
+    "Configura una clave válida de GNews en local.properties o en la variable de entorno GNEWS_API_KEY."
+}
 
 android {
     namespace = "com.example.newsapp"
@@ -29,11 +31,7 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField(
-            "String",
-            "AUTH_API_BASE_URL",
-            "\"${configuredAuthApiBaseUrl ?: "https://auth-backend-not-configured.invalid/"}\""
-        )
+        buildConfigField("String", "GNEWS_API_KEY", "\"$gnewsApiKey\"")
     }
 
     // 1. Habilitar ViewBinding para vinculación rápida de vistas
@@ -43,11 +41,6 @@ android {
     }
 
     buildTypes {
-        debug {
-            if (configuredAuthApiBaseUrl == null) {
-                buildConfigField("String", "AUTH_API_BASE_URL", "\"http://10.0.2.2:3000/\"")
-            }
-        }
         release {
             optimization {
                 enable = true
@@ -76,7 +69,7 @@ dependencies {
     // 2. Consumo de API REST (Retrofit + Gson Converter)
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // 3. Carga eficiente de imágenes (Glide)
     implementation("com.github.bumptech.glide:glide:4.16.0")

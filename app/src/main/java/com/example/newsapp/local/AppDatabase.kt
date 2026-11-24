@@ -60,9 +60,28 @@ internal val MIGRATION_5_6 = object : Migration(5, 6) {
     }
 }
 
+internal val MIGRATION_6_7 = object : Migration(6, 7) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE local_accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                email TEXT NOT NULL,
+                name TEXT NOT NULL,
+                passwordSalt BLOB NOT NULL,
+                passwordHash BLOB NOT NULL,
+                termsVersion INTEGER NOT NULL,
+                termsAcceptedAt INTEGER NOT NULL
+            )
+            """.trimIndent()
+        )
+        db.execSQL("CREATE UNIQUE INDEX index_local_accounts_email ON local_accounts(email)")
+    }
+}
+
 @Database(
-    entities = [EntidadNoticia::class, FavoritoEntity::class, LocalNewsEntity::class, DownloadedNews::class],
-    version = 6,
+    entities = [EntidadNoticia::class, FavoritoEntity::class, LocalNewsEntity::class, DownloadedNews::class, LocalAccount::class],
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -71,6 +90,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun favoritoDao(): FavoritoDao
     abstract fun localNewsDao(): LocalNewsDao
     abstract fun downloadedNewsDao(): DownloadedNewsDao
+    abstract fun localAccountDao(): LocalAccountDao
 
     companion object {
         @Volatile
@@ -83,7 +103,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "news_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                     .build()
                     .also { INSTANCE = it }
             }

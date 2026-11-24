@@ -5,6 +5,8 @@ services:
     environment:
       PORT: 3000
       GNEWS_API_KEY: ${GNEWS_API_KEY:?Configura GNEWS_API_KEY en .env}
+      PUBLIC_NEWS_ENABLED: ${PUBLIC_NEWS_ENABLED:-false}
+      PUBLIC_NEWS_DAILY_LIMIT: ${PUBLIC_NEWS_DAILY_LIMIT:-100}
       TRUST_PROXY_HOPS: 1
     networks:
       - backend

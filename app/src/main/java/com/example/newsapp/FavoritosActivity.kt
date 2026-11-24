@@ -1,8 +1,8 @@
 package com.example.newsapp
 
-import android.os.Bundle
 import androidx.core.view.isVisible
 import androidx.lifecycle.Lifecycle
+import com.example.newsapp.data.LocalProfile
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.GridLayoutManager
@@ -21,9 +21,8 @@ class FavoritosActivity : AuthenticatedActivity() {
     private lateinit var binding: ActivityFavoritosBinding
     private lateinit var newsAdapter: NewsAdapter
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        val cuentaId = activeSession?.userId ?: return
+    override fun onAccountReady(profile: LocalProfile) {
+        val cuentaId = profile.userId
         binding = ActivityFavoritosBinding.inflate(layoutInflater)
         binding.root.applyScreenInsets()
         setContentView(binding.root)

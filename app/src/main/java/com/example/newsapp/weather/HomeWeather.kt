@@ -37,11 +37,12 @@ import kotlin.math.roundToInt
 
 internal class HomeWeather(
     private val activity: AppCompatActivity,
+    accountId: Long,
     private val binding: CardHomeWeatherBinding,
     private val onPlaceChanged: (NewsPlace?) -> Unit,
     private val requestPermission: () -> Unit
 ) {
-    private val preferences = activity.getSharedPreferences("home_weather", Context.MODE_PRIVATE)
+    private val preferences = activity.getSharedPreferences("home_weather_$accountId", Context.MODE_PRIVATE)
     private var weatherRequest: Job? = null
     private var citySearch: Job? = null
 
